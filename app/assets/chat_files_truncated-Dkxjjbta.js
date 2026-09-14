@@ -1,0 +1,1 @@
+import{t as e}from"./runtime-Df6wkC9G.js";var t=()=>`条目过多，仅显示前 500 项`,n=()=>`Too many entries, showing the first 500`,r=((r={},i={})=>(i.locale??e())===`en`?n(r):t(r));export{r as t};

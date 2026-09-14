@@ -1,0 +1,1 @@
+import{t as e}from"./useRouter-CtkXzYcH.js";import{t}from"./useStore-Ba_dQPqf.js";import{n}from"./useMatch-BWiM0cEZ.js";import{t as r}from"./runtime-Df6wkC9G.js";function i(r){let i=e();return t(i.stores.location,n(r,i))}var a=()=>`调整侧栏宽度`,o=()=>`Resize sidebar`,s=((e={},t={})=>(t.locale??r())===`en`?o(e):a(e));export{i as n,s as t};

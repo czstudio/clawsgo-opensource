@@ -1,0 +1,1 @@
+(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,61097,t=>{"use strict";var e=t.i(9921),r=t.i(44286);t.s(["InviteCapture",0,function(){return(0,e.useEffect)(()=>{(0,r.captureInviteCodeFromUrl)()},[]),null}])}]);

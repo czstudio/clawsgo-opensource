@@ -1,0 +1,1 @@
+var e=e=>e.email||e.phoneNumber||``,t=t=>t.displayName||e(t);export{t as n,e as t};

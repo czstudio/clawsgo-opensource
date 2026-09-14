@@ -1,0 +1,1 @@
+function e(e,t=-(2**53-1),n=2**53-1){return Math.max(t,Math.min(e,n))}function t(e,t,n=(e,t)=>e===t){return e.length===t.length&&e.every((e,r)=>n(e,t[r]))}function n(e){return e==null?void 0:`${e}-label`}function r(e,t){return e??t}export{e as i,r as n,t as r,n as t};

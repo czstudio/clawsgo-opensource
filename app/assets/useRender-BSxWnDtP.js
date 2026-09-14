@@ -1,0 +1,1 @@
+import{f as e}from"./runtime-Df6wkC9G.js";function t(t){return e(t.defaultTagName??`div`,t,t)}export{t};

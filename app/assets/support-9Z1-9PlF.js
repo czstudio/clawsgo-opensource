@@ -1,0 +1,1 @@
+import{t as e}from"./region-DPAjEUXn.js";var t=e.id===`cn`?`contact@clawsgo.cn`:`contact@clawsgo.ai`;export{t};

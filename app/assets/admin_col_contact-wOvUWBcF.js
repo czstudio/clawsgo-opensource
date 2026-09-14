@@ -1,0 +1,1 @@
+import{t as e}from"./runtime-Df6wkC9G.js";var t=()=>`联系方式`,n=()=>`Contact`,r=((r={},i={})=>(i.locale??e())===`en`?n(r):t(r));export{r as t};

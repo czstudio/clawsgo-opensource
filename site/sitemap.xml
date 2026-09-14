@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+<url>
+<loc>https://clawsgo.cn</loc>
+<xhtml:link rel="alternate" hreflang="zh-CN" href="https://clawsgo.cn/" />
+<xhtml:link rel="alternate" hreflang="en" href="https://clawsgo.ai/" />
+<xhtml:link rel="alternate" hreflang="x-default" href="https://clawsgo.ai/" />
+</url>
+<url>
+<loc>https://clawsgo.cn/terms</loc>
+<xhtml:link rel="alternate" hreflang="zh-CN" href="https://clawsgo.cn/terms" />
+<xhtml:link rel="alternate" hreflang="en" href="https://clawsgo.ai/terms" />
+<xhtml:link rel="alternate" hreflang="x-default" href="https://clawsgo.ai/terms" />
+</url>
+<url>
+<loc>https://clawsgo.cn/privacy</loc>
+<xhtml:link rel="alternate" hreflang="zh-CN" href="https://clawsgo.cn/privacy" />
+<xhtml:link rel="alternate" hreflang="en" href="https://clawsgo.ai/privacy" />
+<xhtml:link rel="alternate" hreflang="x-default" href="https://clawsgo.ai/privacy" />
+</url>
+<url>
+<loc>https://clawsgo.cn/usage-policy</loc>
+<xhtml:link rel="alternate" hreflang="zh-CN" href="https://clawsgo.cn/usage-policy" />
+<xhtml:link rel="alternate" hreflang="en" href="https://clawsgo.ai/usage-policy" />
+<xhtml:link rel="alternate" hreflang="x-default" href="https://clawsgo.ai/usage-policy" />
+</url>
+<url>
+<loc>https://clawsgo.cn/billing-terms</loc>
+<xhtml:link rel="alternate" hreflang="zh-CN" href="https://clawsgo.cn/billing-terms" />
+<xhtml:link rel="alternate" hreflang="en" href="https://clawsgo.ai/billing-terms" />
+<xhtml:link rel="alternate" hreflang="x-default" href="https://clawsgo.ai/billing-terms" />
+</url>
+</urlset>

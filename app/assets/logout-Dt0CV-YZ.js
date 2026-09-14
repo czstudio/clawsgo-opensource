@@ -1,0 +1,1 @@
+import{f as e,p as t}from"./api-pyi_9PXn.js";import{t as n}from"./runtime-Df6wkC9G.js";var r=()=>`退出登录`,i=()=>`Log out`,a=((e={},t={})=>(t.locale??n())===`en`?i(e):r(e));async function o(){await e(`sign-out`).catch(()=>{}),t(),window.location.href=`/login`}export{a as n,o as t};

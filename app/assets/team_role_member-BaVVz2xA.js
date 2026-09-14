@@ -1,0 +1,1 @@
+import{t as e}from"./runtime-Df6wkC9G.js";var t=()=>`所有者`,n=()=>`Owner`,r=((r={},i={})=>(i.locale??e())===`en`?n(r):t(r)),i=()=>`管理员`,a=()=>`Admin`,o=((t={},n={})=>(n.locale??e())===`en`?a(t):i(t)),s=()=>`成员`,c=()=>`Member`,l=((t={},n={})=>(n.locale??e())===`en`?c(t):s(t));export{o as n,r,l as t};

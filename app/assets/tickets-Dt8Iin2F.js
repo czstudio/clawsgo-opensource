@@ -1,0 +1,1 @@
+import{t as e}from"./AdminTicketsPage-klRBms_A.js";var t=e;export{t as component};

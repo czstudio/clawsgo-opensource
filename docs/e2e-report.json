@@ -1,0 +1,885 @@
+{
+  "at": "2026-09-14T13:00:00.651Z",
+  "base": "http://127.0.0.1:5181",
+  "pass": 219,
+  "fail": 0,
+  "seconds": 25.1,
+  "results": [
+    {
+      "name": "恢复出厂状态",
+      "ok": true
+    },
+    {
+      "name": "发送验证码",
+      "ok": true
+    },
+    {
+      "name": "错误验证码被拒",
+      "ok": true
+    },
+    {
+      "name": "验证码登录成功",
+      "ok": true
+    },
+    {
+      "name": "登录返回 profile 且带 teamId",
+      "ok": true
+    },
+    {
+      "name": "GET 会话探针",
+      "ok": true
+    },
+    {
+      "name": "无 token 访问业务命令返回 401",
+      "ok": true
+    },
+    {
+      "name": "getProfile → { profile }",
+      "ok": true
+    },
+    {
+      "name": "个人团队 id === userId（前端 useCurrentTeam 兜底依赖）",
+      "ok": true
+    },
+    {
+      "name": "getTeams → { teams }",
+      "ok": true
+    },
+    {
+      "name": "getTeams 返回项带 role 且存在 owner",
+      "ok": true
+    },
+    {
+      "name": "getTeamMembers → { members }",
+      "ok": true
+    },
+    {
+      "name": "updateProfile 落库",
+      "ok": true
+    },
+    {
+      "name": "getConversations → { conversations } 扁平数组",
+      "ok": true
+    },
+    {
+      "name": "会话项含前端必需字段",
+      "ok": true
+    },
+    {
+      "name": "getProjects → { projects }",
+      "ok": true
+    },
+    {
+      "name": "SSE 立即下发 channel-ack",
+      "ok": true
+    },
+    {
+      "name": "sendMessage → { userMessage, assistantMessage }",
+      "ok": true
+    },
+    {
+      "name": "助手占位消息带 streamId（前端据此显示 streaming）",
+      "ok": true
+    },
+    {
+      "name": "新会话由后端按 ensure 建档",
+      "ok": true
+    },
+    {
+      "name": "SSE 推送 reasoning part",
+      "ok": true
+    },
+    {
+      "name": "SSE 推送 part-delta 增量",
+      "ok": true
+    },
+    {
+      "name": "SSE 推送真实执行的 Glob 工具结果",
+      "ok": true
+    },
+    {
+      "name": "工具 part 带 durationMs",
+      "ok": true
+    },
+    {
+      "name": "Bash 执行前请求权限审批",
+      "ok": true
+    },
+    {
+      "name": "权限请求携带原始 input",
+      "ok": true
+    },
+    {
+      "name": "answerPermission(allow) 被后端接受",
+      "ok": true
+    },
+    {
+      "name": "SSE 回送 permission-answered",
+      "ok": true
+    },
+    {
+      "name": "审批通过后 Bash 真实执行",
+      "ok": true
+    },
+    {
+      "name": "子智能体编排 part 出现",
+      "ok": true
+    },
+    {
+      "name": "子智能体内部步骤走 track-part 通道",
+      "ok": true
+    },
+    {
+      "name": "运行结束推送 done 帧",
+      "ok": true
+    },
+    {
+      "name": "done 帧携带 usage 用量",
+      "ok": true
+    },
+    {
+      "name": "首次对话自动生成标题（title-updated）",
+      "ok": true
+    },
+    {
+      "name": "getMessages → { messages } 且倒序（第 0 页最新）",
+      "ok": true
+    },
+    {
+      "name": "消息 parts 已落库（含 tool part）",
+      "ok": true
+    },
+    {
+      "name": "完成后 streamId 被清空（前端不会误判为未完成）",
+      "ok": true
+    },
+    {
+      "name": "getConversationCosts → { costs }",
+      "ok": true
+    },
+    {
+      "name": "searchAll 命中会话",
+      "ok": true
+    },
+    {
+      "name": "getConversationFiles → { exists, entries }",
+      "ok": true
+    },
+    {
+      "name": "条目字段齐全（name/path/type/size/mtime）",
+      "ok": true
+    },
+    {
+      "name": "getConversationFileIndex → 扁平索引",
+      "ok": true
+    },
+    {
+      "name": "createConversationEntry 真实建文件",
+      "ok": true
+    },
+    {
+      "name": "updateConversationFile 写入内容",
+      "ok": true
+    },
+    {
+      "name": "downloadConversationFile 返回二进制 + content-disposition",
+      "ok": true
+    },
+    {
+      "name": "uploadConversationFile（原始体 + query 参数）",
+      "ok": true
+    },
+    {
+      "name": "上传内容可原样取回",
+      "ok": true
+    },
+    {
+      "name": "downloadConversationDir 产出合法 ZIP",
+      "ok": true
+    },
+    {
+      "name": "renameConversationEntry",
+      "ok": true
+    },
+    {
+      "name": "copyConversationEntry",
+      "ok": true
+    },
+    {
+      "name": "moveConversationEntry",
+      "ok": true
+    },
+    {
+      "name": "deleteConversationEntry",
+      "ok": true
+    },
+    {
+      "name": "getConversationGitStatus",
+      "ok": true
+    },
+    {
+      "name": "listFigures → { figures }",
+      "ok": true
+    },
+    {
+      "name": "文件通道建立（ready 帧）",
+      "ok": true
+    },
+    {
+      "name": "真实 fs.watch 推送 change 事件",
+      "ok": true
+    },
+    {
+      "name": "change 帧带 truncated 字段",
+      "ok": true
+    },
+    {
+      "name": "updateConversation（改名 + 置顶）",
+      "ok": true
+    },
+    {
+      "name": "shareConversation 生成公开链接",
+      "ok": true
+    },
+    {
+      "name": "getSharedConversation（免登录命令）",
+      "ok": true
+    },
+    {
+      "name": "getSharedMessages",
+      "ok": true
+    },
+    {
+      "name": "关闭分享",
+      "ok": true
+    },
+    {
+      "name": "archiveConversation",
+      "ok": true
+    },
+    {
+      "name": "getArchivedItems → { items } 含刚归档会话",
+      "ok": true
+    },
+    {
+      "name": "unarchiveConversation",
+      "ok": true
+    },
+    {
+      "name": "getSkills → { skills }",
+      "ok": true
+    },
+    {
+      "name": "getSkillDetail → { detail } 带文件列表",
+      "ok": true
+    },
+    {
+      "name": "getSkillFile 读到真实 SKILL.md",
+      "ok": true
+    },
+    {
+      "name": "getSkillFile 可读脚本文件",
+      "ok": true
+    },
+    {
+      "name": "searchSkillMarket 命中",
+      "ok": true
+    },
+    {
+      "name": "installSkill 安装技能",
+      "ok": true
+    },
+    {
+      "name": "setSkillEnabled 启用",
+      "ok": true
+    },
+    {
+      "name": "uninstallSkill 卸载",
+      "ok": true
+    },
+    {
+      "name": "listGithubSkills 返回可装列表",
+      "ok": true
+    },
+    {
+      "name": "getHosts → { hosts }",
+      "ok": true
+    },
+    {
+      "name": "getHostStatus 返回实时状态",
+      "ok": true
+    },
+    {
+      "name": "getHostEnvironment → { environment }",
+      "ok": true
+    },
+    {
+      "name": "getHostStorage → { storage }",
+      "ok": true
+    },
+    {
+      "name": "getHostDirectories 返回目录树",
+      "ok": true
+    },
+    {
+      "name": "createHostDirectory 真实建目录",
+      "ok": true
+    },
+    {
+      "name": "新建目录出现在目录树",
+      "ok": true
+    },
+    {
+      "name": "createHostDirectory 幂等（重名不报 409）",
+      "ok": true
+    },
+    {
+      "name": "createHostDirectory 拦截路径越界",
+      "ok": true
+    },
+    {
+      "name": "createHostDirectory 拦截深层越界",
+      "ok": true
+    },
+    {
+      "name": "getHostSkills → { skills }",
+      "ok": true
+    },
+    {
+      "name": "getSshServers → { sshServers }",
+      "ok": true
+    },
+    {
+      "name": "probeSshServers 真实 TCP 探活",
+      "ok": true
+    },
+    {
+      "name": "createHost 创建主机",
+      "ok": true
+    },
+    {
+      "name": "开通流程：provisioning → running",
+      "ok": true
+    },
+    {
+      "name": "cleanHostCache",
+      "ok": true
+    },
+    {
+      "name": "rebuildHost",
+      "ok": true
+    },
+    {
+      "name": "deleteHost",
+      "ok": true
+    },
+    {
+      "name": "getSubscription → { subscription } 带 planId",
+      "ok": true
+    },
+    {
+      "name": "订阅返回套餐规格（cpus / models / agentMemory）",
+      "ok": true
+    },
+    {
+      "name": "getPlans 返回全部套餐与充值档",
+      "ok": true
+    },
+    {
+      "name": "年付 6 折（pro 年付 = ¥215.28）",
+      "ok": true
+    },
+    {
+      "name": "quoteUpgrade 抵扣试算",
+      "ok": true
+    },
+    {
+      "name": "createPaymentOrder → { order } 带 payUrl",
+      "ok": true
+    },
+    {
+      "name": "充值档赠送到位（¥50 档 +1000bp）",
+      "ok": true
+    },
+    {
+      "name": "payUrl 指向可打开的收银台页面",
+      "ok": true
+    },
+    {
+      "name": "syncPaymentOrder 轮询到已支付",
+      "ok": true
+    },
+    {
+      "name": "支付后额度真实到账",
+      "ok": true
+    },
+    {
+      "name": "额度流水新增 topup 记录",
+      "ok": true
+    },
+    {
+      "name": "getPaymentOrders → { orders }",
+      "ok": true
+    },
+    {
+      "name": "套餐订单下单成功（pro → ultra）",
+      "ok": true
+    },
+    {
+      "name": "套餐支付后订阅升级为 ultra",
+      "ok": true
+    },
+    {
+      "name": "ultra 解锁 fable 模型",
+      "ok": true
+    },
+    {
+      "name": "createInvoice 申请开票",
+      "ok": true
+    },
+    {
+      "name": "getInvoices → { invoices }",
+      "ok": true
+    },
+    {
+      "name": "redeemCode 演示码真实兑换",
+      "ok": true
+    },
+    {
+      "name": "getMyInviteCodes 返回邀请码",
+      "ok": true
+    },
+    {
+      "name": "createInviteCode 新建邀请码",
+      "ok": true
+    },
+    {
+      "name": "createTicket → { ticket }",
+      "ok": true
+    },
+    {
+      "name": "replyTicket",
+      "ok": true
+    },
+    {
+      "name": "getMyTickets → { tickets, messages }",
+      "ok": true
+    },
+    {
+      "name": "getTicket → { ticket, messages, truncated }",
+      "ok": true
+    },
+    {
+      "name": "uploadTicketAttachment（multipart）返回 attachment.url",
+      "ok": true
+    },
+    {
+      "name": "附件 URL 为绝对地址且带合法预签名参数（前端 new URL 解析依赖）",
+      "ok": true
+    },
+    {
+      "name": "附件可下载",
+      "ok": true
+    },
+    {
+      "name": "getTicketUnreadCount → { count }",
+      "ok": true
+    },
+    {
+      "name": "markTicketSeen",
+      "ok": true
+    },
+    {
+      "name": "getActiveAnnouncements → { announcements }",
+      "ok": true
+    },
+    {
+      "name": "getUsageStats → { usageStats } 含 input/output/cacheRead",
+      "ok": true
+    },
+    {
+      "name": "用量按模型聚合",
+      "ok": true
+    },
+    {
+      "name": "getOverview 返回后台总览",
+      "ok": true
+    },
+    {
+      "name": "getDevices → { devices }",
+      "ok": true
+    },
+    {
+      "name": "registerDevice 返回 device + token",
+      "ok": true
+    },
+    {
+      "name": "revokeDevice",
+      "ok": true
+    },
+    {
+      "name": "createProject",
+      "ok": true
+    },
+    {
+      "name": "getProject",
+      "ok": true
+    },
+    {
+      "name": "updateProject",
+      "ok": true
+    },
+    {
+      "name": "archiveProject",
+      "ok": true
+    },
+    {
+      "name": "createAgentMemory",
+      "ok": true
+    },
+    {
+      "name": "listAgentMemory",
+      "ok": true
+    },
+    {
+      "name": "updateAgentMemory",
+      "ok": true
+    },
+    {
+      "name": "writeAgentFile 落盘",
+      "ok": true
+    },
+    {
+      "name": "readAgentFile 读回",
+      "ok": true
+    },
+    {
+      "name": "deleteAgentMemory",
+      "ok": true
+    },
+    {
+      "name": "deleteProject",
+      "ok": true
+    },
+    {
+      "name": "createConversationTerminal → { terminal, ticket }",
+      "ok": true
+    },
+    {
+      "name": "终端 WebSocket 握手 + 欢迎信息",
+      "ok": true
+    },
+    {
+      "name": "终端执行 help 返回命令说明",
+      "ok": true
+    },
+    {
+      "name": "终端 ls 列出真实工作区文件",
+      "ok": true
+    },
+    {
+      "name": "终端执行 wc 得到真实行数",
+      "ok": true
+    },
+    {
+      "name": "终端 mkdir/touch 真实改了文件系统",
+      "ok": true
+    },
+    {
+      "name": "终端 echo 回显",
+      "ok": true
+    },
+    {
+      "name": "终端 rm 真实删除目录",
+      "ok": true
+    },
+    {
+      "name": "终端拒绝白名单外的命令",
+      "ok": true
+    },
+    {
+      "name": "getConversationTerminals → { terminals }",
+      "ok": true
+    },
+    {
+      "name": "closeConversationTerminal",
+      "ok": true
+    },
+    {
+      "name": "createFileDirectTicket → { direct:{port,ticket,ttlMs} }",
+      "ok": true
+    },
+    {
+      "name": "桌面直连 /files/list 返回与命令一致的数据",
+      "ok": true
+    },
+    {
+      "name": "桌面直连 /files/read 返回二进制 + disposition",
+      "ok": true
+    },
+    {
+      "name": "管理员密码登录",
+      "ok": true
+    },
+    {
+      "name": "getUsers（后台用户列表）",
+      "ok": true
+    },
+    {
+      "name": "getUserDetail 返回分组详情",
+      "ok": true
+    },
+    {
+      "name": "adminGetTeams",
+      "ok": true
+    },
+    {
+      "name": "adminGetTeamDetail",
+      "ok": true
+    },
+    {
+      "name": "adminGetTeamMembers",
+      "ok": true
+    },
+    {
+      "name": "adminGetUserLedger → { entries }",
+      "ok": true
+    },
+    {
+      "name": "adminGetUserOrders → { orders }",
+      "ok": true
+    },
+    {
+      "name": "adminGetChatConversations",
+      "ok": true
+    },
+    {
+      "name": "adminGetConversationCosts → { costs }",
+      "ok": true
+    },
+    {
+      "name": "adminGetPaymentOrders",
+      "ok": true
+    },
+    {
+      "name": "adminGetInvoiceStats",
+      "ok": true
+    },
+    {
+      "name": "adminGetInvoices",
+      "ok": true
+    },
+    {
+      "name": "adminIssueInvoice 开票",
+      "ok": true
+    },
+    {
+      "name": "adminRefundPaymentOrder 退款并回收额度",
+      "ok": true
+    },
+    {
+      "name": "adminTopupCredits 手动加额度",
+      "ok": true
+    },
+    {
+      "name": "adminGrantPlan 直接授予套餐",
+      "ok": true
+    },
+    {
+      "name": "adminCreateRedeemCodes 生成兑换码",
+      "ok": true
+    },
+    {
+      "name": "adminGetRedeemCodes 可查回",
+      "ok": true
+    },
+    {
+      "name": "adminDisableRedeemCode 作废",
+      "ok": true
+    },
+    {
+      "name": "兑换码真实兑换到账",
+      "ok": true
+    },
+    {
+      "name": "adminCreateAnnouncement",
+      "ok": true
+    },
+    {
+      "name": "adminUpdateAnnouncement",
+      "ok": true
+    },
+    {
+      "name": "adminDeleteAnnouncement",
+      "ok": true
+    },
+    {
+      "name": "adminGetAuditLogs 记录到管理操作",
+      "ok": true
+    },
+    {
+      "name": "adminGetExpiringSubscriptions",
+      "ok": true
+    },
+    {
+      "name": "adminGetChannelReport",
+      "ok": true
+    },
+    {
+      "name": "adminGetInviteOverview",
+      "ok": true
+    },
+    {
+      "name": "adminGetInviteCohorts",
+      "ok": true
+    },
+    {
+      "name": "adminGetInviteRiskReport",
+      "ok": true
+    },
+    {
+      "name": "adminRunMigration 启动迁移",
+      "ok": true
+    },
+    {
+      "name": "迁移跑完（4 步）",
+      "ok": true
+    },
+    {
+      "name": "adminGetMigrationReport 出报告",
+      "ok": true
+    },
+    {
+      "name": "adminGetCloudHosts",
+      "ok": true
+    },
+    {
+      "name": "adminGetInviteCodeReport → { codes, total }",
+      "ok": true
+    },
+    {
+      "name": "报表行字段齐全（前端表格直接读取）",
+      "ok": true
+    },
+    {
+      "name": "报表支持 revenue 排序",
+      "ok": true
+    },
+    {
+      "name": "报表支持 q 过滤",
+      "ok": true
+    },
+    {
+      "name": "adminGetPromoters → { promoters, total, currency }",
+      "ok": true
+    },
+    {
+      "name": "推广员行字段齐全（前端表格 + 弹窗直接读取）",
+      "ok": true
+    },
+    {
+      "name": "adminGetPromoterDetail → { promotion } 含 months / settlements",
+      "ok": true
+    },
+    {
+      "name": "分佣规则随会话返回（前 3 个月 × 30%）",
+      "ok": true
+    },
+    {
+      "name": "adminSettlePromoter 登记打款",
+      "ok": true
+    },
+    {
+      "name": "打款写入结算流水",
+      "ok": true
+    },
+    {
+      "name": "打款后应结金额下降",
+      "ok": true
+    },
+    {
+      "name": "adminCreateFileLink → { link:{url} }（少这层前端会拼出 undefined）",
+      "ok": true
+    },
+    {
+      "name": "直链 url 已带 ?（前端会再拼 &download=1）",
+      "ok": true
+    },
+    {
+      "name": "签名直链免登录可读（img/iframe 场景）",
+      "ok": true
+    },
+    {
+      "name": "直链加 &download=1 返回附件头",
+      "ok": true
+    },
+    {
+      "name": "无效 token 直链被拒",
+      "ok": true
+    },
+    {
+      "name": "adminDownloadConversationFile 返回二进制 + disposition",
+      "ok": true
+    },
+    {
+      "name": "adminCreateOfficeSession → { session:{ serverUrl, config } }",
+      "ok": true
+    },
+    {
+      "name": "config 满足编辑器组件解构（document.key + editorConfig.mode）",
+      "ok": true
+    },
+    {
+      "name": "document.url 指向可下载的签名直链",
+      "ok": true
+    },
+    {
+      "name": "本地 DocsAPI 替身可加载且导出 DocEditor",
+      "ok": true
+    },
+    {
+      "name": "createFileLink 也是 { link:{url} }（同一份适配器）",
+      "ok": true
+    },
+    {
+      "name": "createOfficeSession 也是 ONLYOFFICE 会话",
+      "ok": true
+    },
+    {
+      "name": "Office 会话支持 lang/theme 透传（影响 key 与 uiTheme）",
+      "ok": true
+    },
+    {
+      "name": "契约中的命令都已实现（或在允许的例外清单内）",
+      "ok": true
+    },
+    {
+      "name": "应用外壳 index.html 可访问",
+      "ok": true
+    },
+    {
+      "name": "外壳引用了入口 JS chunk",
+      "ok": true
+    },
+    {
+      "name": "入口 chunk 可下载且是 JS",
+      "ok": true
+    },
+    {
+      "name": "深链回落 index.html（前端路由接管）",
+      "ok": true
+    },
+    {
+      "name": "缺失静态资源返回 404（不吞成 index.html）",
+      "ok": true
+    },
+    {
+      "name": "营销站 :5180 独立可用",
+      "ok": true
+    },
+    {
+      "name": "未注册命令返回结构化错误（不是 500 崩溃）",
+      "ok": true
+    }
+  ]
+}

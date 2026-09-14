@@ -1,0 +1,1 @@
+import{n as e,r as t}from"./useMutation-Bp1uS7-G.js";function n(n,r){return e(n,t,r)}export{n as t};

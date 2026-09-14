@@ -1,0 +1,20 @@
+{
+  "app_origin": "http://localhost:5181",
+  "site_origin": "http://localhost:5180",
+  "marketing_routes": [
+    "/",
+    "/terms",
+    "/privacy",
+    "/usage-policy",
+    "/billing-terms"
+  ],
+  "app_assets": 601,
+  "changed": [
+    "site/index.html",
+    "site/terms/index.html",
+    "site/privacy/index.html",
+    "site/usage-policy/index.html",
+    "site/billing-terms/index.html",
+    "app/assets/api-pyi_9PXn.js"
+  ]
+}

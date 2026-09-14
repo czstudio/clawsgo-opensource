@@ -1,0 +1,167 @@
+[
+  {
+    "path": "/login",
+    "desc": "登录（OTP / 密码 两种 tab）",
+    "access": "phone"
+  },
+  {
+    "path": "/chat",
+    "desc": "对话主界面（默认工作区）",
+    "access": "auth"
+  },
+  {
+    "path": "/chat/$conversationId",
+    "desc": "具体对话",
+    "access": "auth"
+  },
+  {
+    "path": "/share/$conversationId",
+    "desc": "公开分享的只读对话",
+    "access": "public"
+  },
+  {
+    "path": "/home",
+    "desc": "概览/落地页",
+    "access": "auth"
+  },
+  {
+    "path": "/showcase",
+    "desc": "作品展示",
+    "access": "auth"
+  },
+  {
+    "path": "/skills",
+    "desc": "技能库",
+    "access": "auth"
+  },
+  {
+    "path": "/hosts",
+    "desc": "主机（SSH/GPU）管理",
+    "access": "auth"
+  },
+  {
+    "path": "/teams",
+    "desc": "团队",
+    "access": "auth"
+  },
+  {
+    "path": "/invites",
+    "desc": "邀请码",
+    "access": "auth"
+  },
+  {
+    "path": "/redeem",
+    "desc": "兑换码",
+    "access": "auth"
+  },
+  {
+    "path": "/invoices",
+    "desc": "发票",
+    "access": "auth"
+  },
+  {
+    "path": "/tickets",
+    "desc": "工单列表",
+    "access": "auth"
+  },
+  {
+    "path": "/tickets/$ticketId",
+    "desc": "工单详情",
+    "access": "auth"
+  },
+  {
+    "path": "/billing/return",
+    "desc": "支付回跳",
+    "access": "auth"
+  },
+  {
+    "path": "/desktop-auth",
+    "desc": "桌面端授权（一次性 token）",
+    "access": "public"
+  },
+  {
+    "path": "/migration",
+    "desc": "数据迁移",
+    "access": "admin"
+  },
+  {
+    "path": "/admin",
+    "desc": "后台总览",
+    "access": "admin"
+  },
+  {
+    "path": "/admin/users",
+    "desc": "用户管理",
+    "access": "admin"
+  },
+  {
+    "path": "/admin/hosts",
+    "desc": "主机管理",
+    "access": "admin"
+  },
+  {
+    "path": "/admin/teams",
+    "desc": "团队管理",
+    "access": "admin"
+  },
+  {
+    "path": "/admin/payments",
+    "desc": "支付订单",
+    "access": "admin"
+  },
+  {
+    "path": "/admin/invoices",
+    "desc": "发票管理",
+    "access": "admin"
+  },
+  {
+    "path": "/admin/growth",
+    "desc": "增长报表",
+    "access": "admin"
+  },
+  {
+    "path": "/admin/invites",
+    "desc": "邀请/渠道",
+    "access": "admin"
+  },
+  {
+    "path": "/admin/promoters",
+    "desc": "推广员",
+    "access": "admin"
+  },
+  {
+    "path": "/admin/redeem",
+    "desc": "兑换码",
+    "access": "admin"
+  },
+  {
+    "path": "/admin/risk",
+    "desc": "风控",
+    "access": "admin"
+  },
+  {
+    "path": "/admin/audit",
+    "desc": "审计日志",
+    "access": "admin"
+  },
+  {
+    "path": "/admin/announcements",
+    "desc": "公告",
+    "access": "admin"
+  },
+  {
+    "path": "/admin/tickets",
+    "desc": "工单后台",
+    "access": "admin"
+  },
+  {
+    "path": "/admin/tickets/$ticketId",
+    "desc": "工单后台详情",
+    "access": "admin"
+  },
+  {
+    "path": "/admin/migration",
+    "desc": "迁移后台",
+    "access": "admin"
+  }
+]

@@ -1,0 +1,1 @@
+var e=window.clawsgo?.desktop===!0;function t(){return window.clawsgo??null}export{e as n,t};

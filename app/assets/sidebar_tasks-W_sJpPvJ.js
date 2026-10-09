@@ -1,0 +1,1 @@
+import{t as e}from"./runtime-Jr9NGD9h.js";var t=()=>`任务`,n=()=>`Tasks`,r=((r={},i={})=>(i.locale??e())===`en`?n(r):t(r));export{r as t};

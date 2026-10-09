@@ -45,6 +45,13 @@ const EMPTY = () => ({
   terminalTickets: [],
   terminals: [],
   migrations: [],
+  // ---- 线上新版新增的能力（2026-10 抓取的构建）----
+  cards: [],                // 卡包 {id, code, userId, teamId, type, validDays, usedAt, voidedAt, expiresAt}
+  images: [],               // 生成的图片 {id, teamId, kind, prompt, status, url, svg, size}
+  subagents: [],            // 子智能体 {id, scope, hostId|projectId, filename, name, prompt, skills}
+  mcpServers: [],           // MCP 服务器 {id, scope, hostId|projectId, name, transport, command|url}
+  projectTerminalOrder: [], // 项目终端顺序 {projectId, order:[terminalId]}
+  uploadIntents: [],        // 上传预检（prepareConversationUpload）
   counters: { ticket: 1000 },
 });
 

@@ -2,6 +2,7 @@
 // 用途：downloadConversationDir 打包工作区目录，保持零依赖。
 // 生成的 ZIP 遵循 PKWARE APPNOTE 6.3.x，可被 Windows 资源管理器 / macOS 归档实用工具 / unzip 正常打开。
 import { Buffer } from 'node:buffer';
+import { inflateRawSync } from 'node:zlib';
 
 const CRC_TABLE = (() => {
   const t = new Int32Array(256);
@@ -95,4 +96,75 @@ export function makeZip(entries, { mtime = new Date() } = {}) {
   eocd.writeUInt16LE(0, 20);
 
   return Buffer.concat([...locals, centralBuf, eocd]);
+}
+
+/**
+ * 最小 ZIP 读取器（STORE / DEFLATE）。
+ * 用途：uploadHostSkillArchive 解析用户上传的技能包 zip。
+ * @param {Buffer} buf
+ * @returns {{path:string, content:Buffer}[]}
+ */
+export function readZip(buf) {
+  if (!Buffer.isBuffer(buf)) throw new Error('readZip 需要 Buffer');
+  // ---- 1. 从尾部倒着找 EOCD (0x06054b50) ----
+  let eocd = -1;
+  const min = Math.max(0, buf.length - 22 - 0xffff);
+  for (let i = buf.length - 22; i >= min; i--) {
+    if (buf.readUInt32LE(i) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error('不是有效的 zip 文件（未找到 EOCD）');
+
+  let count = buf.readUInt16LE(eocd + 10);
+  let cdOffset = buf.readUInt32LE(eocd + 16);
+  // zip64：0xffff 哨兵值 → 从 zip64 EOCD locator 取真值
+  if (count === 0xffff || cdOffset === 0xffffffff) {
+    const loc = eocd - 20;
+    if (loc >= 0 && buf.readUInt32LE(loc) === 0x07064b50) {
+      const z64 = Number(buf.readBigUInt64LE(loc + 8));
+      if (buf.readUInt32LE(z64) === 0x06064b50) {
+        count = Number(buf.readBigUInt64LE(z64 + 32));
+        cdOffset = Number(buf.readBigUInt64LE(z64 + 48));
+      }
+    }
+  }
+
+  const out = [];
+  let off = cdOffset;
+  for (let n = 0; n < count; n++) {
+    if (off + 46 > buf.length || buf.readUInt32LE(off) !== 0x02014b50) break;
+    const method = buf.readUInt16LE(off + 10);
+    const compSize = buf.readUInt32LE(off + 20);
+    const nameLen = buf.readUInt16LE(off + 28);
+    const extraLen = buf.readUInt16LE(off + 30);
+    const cmtLen = buf.readUInt16LE(off + 32);
+    let localOff = buf.readUInt32LE(off + 42);
+    const name = buf.toString('utf8', off + 46, off + 46 + nameLen);
+
+    if (localOff === 0xffffffff) {
+      // zip64 extra field (header id 0x0001) 里取真实 local header 偏移
+      let e = off + 46 + nameLen;
+      const end = e + extraLen;
+      while (e + 4 <= end) {
+        const id = buf.readUInt16LE(e);
+        const sz = buf.readUInt16LE(e + 2);
+        if (id === 0x0001 && sz >= 8) { localOff = Number(buf.readBigUInt64LE(e + 4)); break; }
+        e += 4 + sz;
+      }
+    }
+
+    let data = Buffer.alloc(0);
+    if (localOff + 30 <= buf.length && buf.readUInt32LE(localOff) === 0x04034b50) {
+      const lNameLen = buf.readUInt16LE(localOff + 26);
+      const lExtraLen = buf.readUInt16LE(localOff + 28);
+      const start = localOff + 30 + lNameLen + lExtraLen;
+      const raw = buf.subarray(start, Math.min(start + compSize, buf.length));
+      if (method === 0) data = Buffer.from(raw);
+      else if (method === 8) data = inflateRawSync(raw);
+      else throw new Error(`zip 不支持的压缩方式: ${method}`);
+    }
+
+    out.push({ path: name, content: data });
+    off += 46 + nameLen + extraLen + cmtLen;
+  }
+  return out;
 }

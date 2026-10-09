@@ -1,1 +1,0 @@
-import{t as e}from"./runtime-Df6wkC9G.js";var t=()=>`团队`,n=()=>`Team`,r=((r={},i={})=>(i.locale??e())===`en`?n(r):t(r));export{r as t};

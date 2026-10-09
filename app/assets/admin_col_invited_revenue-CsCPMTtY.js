@@ -1,0 +1,1 @@
+import{t as e}from"./runtime-Jr9NGD9h.js";var t=()=>`用户`,n=()=>`User`,r=((r={},i={})=>(i.locale??e())===`en`?n(r):t(r)),i=()=>`邀请人`,a=()=>`Inviter`,o=((t={},n={})=>(n.locale??e())===`en`?a(t):i(t)),s=()=>`带动收入`,c=()=>`Referred revenue`,l=((t={},n={})=>(n.locale??e())===`en`?c(t):s(t));export{o as n,r,l as t};

@@ -32,7 +32,7 @@ import {
   planRank,
   isValidPlan,
 } from '../lib/plans.mjs';
-import { req, notFound, need, conflict, badRequest, forbidden } from '../lib/errors.mjs';
+import { req, notFound, need, conflict, badRequest, forbidden, ApiError as ApiErrorB } from '../lib/errors.mjs';
 
 /** 演示用支付超时后自动置为已付（前端以 1s 轮询 syncPaymentOrder 感知） */
 const AUTO_PAY_MS = Number(process.env.CLAWSGO_AUTO_PAY_MS ?? 6000);
@@ -461,6 +461,45 @@ async function renameInviteCode(p, ctx) {
   return { inviteCode: inviteCode(row), ok: true };
 }
 
+
+/* ------------------------------------------------------------------ */
+/* 支付凭证（线上新版，usePaymentOrder-DzPn7xyI.js）                    */
+/* ------------------------------------------------------------------ */
+
+/** 前端：r('getPaymentDocuments',{teamId, orderId}) → 直接把结果塞给凭证面板 */
+async function getPaymentDocuments(p, ctx) {
+  const db = db$();
+  const orderId = req(p, 'orderId');
+  const teamId = p?.teamId ?? ctx.teamId;
+  const order = db.paymentOrders.find((o) => o.id === orderId);
+  if (!order) notFound('订单');
+  if (order.teamId !== teamId && ctx.user.role !== 'super_admin') {
+    throw new ApiErrorB('FORBIDDEN', '无权访问该订单', 403);
+  }
+  const invoices = db.invoices.filter((i) => i.orderId === orderId);
+  const documents = [
+    {
+      id: `order_${order.id}`,
+      kind: 'order',
+      title: `订单 ${order.orderNo ?? order.id}`,
+      amountCents: order.amountCents ?? order.amount ?? 0,
+      status: order.status,
+      issuedAt: order.paidAt ?? order.createdAt,
+      url: `/__pay/${order.id}`,
+    },
+    ...invoices.map((i) => ({
+      id: i.id,
+      kind: 'invoice',
+      title: i.title,
+      amountCents: i.amount,
+      status: i.status,
+      issuedAt: i.issuedAt ?? i.createdAt,
+      url: `/api/downloadInvoice?id=${encodeURIComponent(i.id)}`,
+    })),
+  ];
+  return { documents, order: paymentOrder(order), invoices: invoices.map(invoice), total: documents.length };
+}
+
 export const commands = {
   getSubscription,
   getPlans,
@@ -476,4 +515,5 @@ export const commands = {
   getMyInviteCodes,
   createInviteCode,
   renameInviteCode,
+  getPaymentDocuments,
 };

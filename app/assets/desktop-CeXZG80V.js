@@ -1,0 +1,1 @@
+var e=window.clawsgo?.desktop===!0,t=e&&window.clawsgo?.platform===`darwin`;function n(){return window.clawsgo??null}function r(e,t){if(!e)return!1;let n=e.split(`.`).map(Number),r=t.split(`.`).map(Number);for(let e=0;e<Math.max(n.length,r.length);e++){let t=(n[e]??0)-(r[e]??0);if(t!==0)return t<0}return!1}export{r as i,e as n,t as r,n as t};

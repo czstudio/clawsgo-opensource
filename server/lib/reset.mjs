@@ -20,7 +20,7 @@ import { DATA_DIR, db$, reset, flush } from './db.mjs';
 import { seedIfEmpty } from './seed.mjs';
 
 /** 需要清空的派生目录（相对于 server/data） */
-const DERIVED_DIRS = ['hosts', 'workspace', 'files'];
+const DERIVED_DIRS = ['hosts', 'workspace', 'files', 'images'];
 
 function wipeDir(abs) {
   try {

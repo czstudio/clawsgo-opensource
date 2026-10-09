@@ -7,6 +7,12 @@
 <xhtml:link rel="alternate" hreflang="x-default" href="https://clawsgo.ai/" />
 </url>
 <url>
+<loc>https://clawsgo.cn/download</loc>
+<xhtml:link rel="alternate" hreflang="zh-CN" href="https://clawsgo.cn/download" />
+<xhtml:link rel="alternate" hreflang="en" href="https://clawsgo.ai/download" />
+<xhtml:link rel="alternate" hreflang="x-default" href="https://clawsgo.ai/download" />
+</url>
+<url>
 <loc>https://clawsgo.cn/terms</loc>
 <xhtml:link rel="alternate" hreflang="zh-CN" href="https://clawsgo.cn/terms" />
 <xhtml:link rel="alternate" hreflang="en" href="https://clawsgo.ai/terms" />
@@ -29,5 +35,11 @@
 <xhtml:link rel="alternate" hreflang="zh-CN" href="https://clawsgo.cn/billing-terms" />
 <xhtml:link rel="alternate" hreflang="en" href="https://clawsgo.ai/billing-terms" />
 <xhtml:link rel="alternate" hreflang="x-default" href="https://clawsgo.ai/billing-terms" />
+</url>
+<url>
+<loc>https://clawsgo.cn/promoter-terms</loc>
+<xhtml:link rel="alternate" hreflang="zh-CN" href="https://clawsgo.cn/promoter-terms" />
+<xhtml:link rel="alternate" hreflang="en" href="https://clawsgo.ai/promoter-terms" />
+<xhtml:link rel="alternate" hreflang="x-default" href="https://clawsgo.ai/promoter-terms" />
 </url>
 </urlset>

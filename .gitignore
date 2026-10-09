@@ -35,3 +35,7 @@ desktop.ini
 .env
 .env.*
 !.env.example
+
+# reverse-skill 案卷（本地分析工件，不入仓）
+work/
+.live/

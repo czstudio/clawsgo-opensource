@@ -1,0 +1,1 @@
+function e(e,t,n){return new Intl.PluralRules(e,n).select(Number(t))}export{e as t};

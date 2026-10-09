@@ -1,0 +1,1 @@
+import{d as e,f as t}from"./api-DYG_whnY.js";import{t as n}from"./runtime-Jr9NGD9h.js";var r=()=>`退出登录`,i=()=>`Sign out`,a=((e={},t={})=>(t.locale??n())===`en`?i(e):r(e));async function o(){await e(`sign-out`).catch(()=>{}),t(),window.location.href=`/login`}export{a as n,o as t};

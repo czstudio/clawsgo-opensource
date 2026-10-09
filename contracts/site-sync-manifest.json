@@ -1,0 +1,72 @@
+{
+  "staging": ".live/site",
+  "added": [],
+  "updated": [
+    "apple-icon.png",
+    "billing-terms/index.html",
+    "docs/billing/credits/index.html",
+    "docs/billing/plans/index.html",
+    "docs/billing/purchase/index.html",
+    "docs/faq/index.html",
+    "docs/faq/troubleshooting/index.html",
+    "docs/guides/desktop/index.html",
+    "docs/guides/files/index.html",
+    "docs/index.html",
+    "docs/quickstart/choose-model/index.html",
+    "docs/quickstart/first-task/index.html",
+    "docs/quickstart/sign-up/index.html",
+    "docs/quickstart/tour/index.html",
+    "download/index.html",
+    "favicon.ico",
+    "index.html",
+    "og.png",
+    "privacy/index.html",
+    "promoter-terms/index.html",
+    "sitemap.xml",
+    "terms/index.html",
+    "usage-policy/index.html"
+  ],
+  "removed": [
+    "_next/static/chunks/0gp6uf8xiuzua.css",
+    "_next/static/chunks/20n7eqof_o-c9.js",
+    "_next/static/chunks/29e9lx6xn_hg_.js",
+    "_next/static/chunks/2ul15496ge9ax.js",
+    "_next/static/chunks/33abwav9i5h7q.js",
+    "_next/static/chunks/3nyut5n_i-3pn.js",
+    "_next/static/chunks/3r6lmrzm2y_u6.js",
+    "_next/static/chunks/3u5e3-s_ywwqi.js",
+    "_next/static/chunks/4497t1ognlmqs.js",
+    "_next/static/chunks/turbopack-2_5kemjh-ee0v.js"
+  ],
+  "rewrites": [
+    [
+      "https://app.clawsgo.cn",
+      "http://localhost:5181"
+    ],
+    [
+      "https://app.clawsgo.ai",
+      "http://localhost:5181"
+    ]
+  ],
+  "pages": [
+    "billing-terms/index.html",
+    "docs/billing/credits/index.html",
+    "docs/billing/plans/index.html",
+    "docs/billing/purchase/index.html",
+    "docs/faq/index.html",
+    "docs/faq/troubleshooting/index.html",
+    "docs/guides/desktop/index.html",
+    "docs/guides/files/index.html",
+    "docs/index.html",
+    "docs/quickstart/choose-model/index.html",
+    "docs/quickstart/first-task/index.html",
+    "docs/quickstart/sign-up/index.html",
+    "docs/quickstart/tour/index.html",
+    "download/index.html",
+    "index.html",
+    "privacy/index.html",
+    "promoter-terms/index.html",
+    "terms/index.html",
+    "usage-policy/index.html"
+  ]
+}

@@ -1231,6 +1231,336 @@ async function main() {
   check('createOfficeSession 也是 ONLYOFFICE 会话', !!userSess.session?.config?.document?.key, userSess.session?.config?.editorConfig?.lang);
   check('Office 会话支持 lang/theme 透传（影响 key 与 uiTheme）', userSess.session.config.editorConfig.lang === 'en-US' && userSess.session.config.editorConfig.customization.uiTheme === 'theme-dark');
 
+
+
+
+
+  /* ---------------- 16c. 卡包（线上新增） ---------------- */
+  section('16c. 卡包（发卡 / 领取 / 使用 / 作废）');
+
+  const recipients = await api('adminSearchCardRecipients', { identifiers: [PHONE, 'no-such-user'] });
+  check('adminSearchCardRecipients → { users, missing }', Array.isArray(recipients.users) && Array.isArray(recipients.missing), `命中 ${recipients.users.length} · 缺失 ${recipients.missing.length}`);
+  check('找不到的标识进 missing（前端用 Intl.ListFormat 提示）', recipients.missing.includes('no-such-user'));
+
+  const cardsIssued = await api('adminIssueCards', { userIds: [recipients.users[0].userId, recipients.users[0].userId], type: 'week', validDays: 7, note: 'E2E 发卡' });
+  check('adminIssueCards → { cards, count }', cardsIssued.count === 2 && !!cardsIssued.cards[0]?.code, `卡号 ${cardsIssued.cards[0]?.code}`);
+  check('卡形状含前端直接读的字段', ['id', 'code', 'type', 'status', 'claimed', 'expiresAt', 'validDays'].every((k) => k in (cardsIssued.cards[0] ?? {})), `${cardsIssued.cards[0]?.type}/${cardsIssued.cards[0]?.status}`);
+
+  const cardReport = await api('adminGetCardReport', {});
+  check('adminGetCardReport → { total, byStatus, byType }', typeof cardReport.total === 'number' && !!cardReport.byStatus && !!cardReport.byType, `共 ${cardReport.total} 张 · active ${cardReport.byStatus.active}`);
+  check('报表含 issued7d / issued30d / used30d / expiringSoon', ['issued7d', 'issued30d', 'used30d', 'expiringSoon'].every((k) => k in cardReport));
+
+  const admCards = await api('adminGetCards', { limit: 50, offset: 0 });
+  check('adminGetCards → { cards, total }', admCards.cards.length > 0, `${admCards.total} 张`);
+  const admCardFiltered = await api('adminGetCards', { status: 'active', type: 'week', limit: 50 });
+  check('adminGetCards 支持 status / type 过滤', admCardFiltered.cards.every((c) => c.status === 'active' && c.type === 'week'), `${admCardFiltered.total} 张`);
+
+  const cardVoided = await api('adminVoidCard', { cardId: cardsIssued.cards[0].id });
+  check('adminVoidCard → { card, cardVoided }', cardVoided.voided === true && cardVoided.card.status === 'voided');
+  const voidTwice = await api('adminVoidCard', { cardId: cardsIssued.cards[0].id }).catch((e) => e);
+  check('重复作废返回 CONFLICT', voidTwice.code === 'CONFLICT', voidTwice.code);
+
+  // 切回普通用户，跑领取 / 使用这条主线
+  TOKEN = null;
+  const backLogin = await fetch(`${BASE}/api/auth/phone-number/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phoneNumber: PHONE, code: OTP }),
+  });
+  TOKEN = backLogin.headers.get('set-auth-token');
+  const backJson = await backLogin.json();
+  check('切回普通用户', !!TOKEN && backJson.user?.role !== 'super_admin', backJson.user?.role ?? 'user');
+
+  const myCards = await api('getCards', {});
+  check('getCards → { cards, total }（首次自动补一张演示卡）', myCards.cards.length >= 1, `${myCards.total} 张`);
+  const myCard = myCards.cards.find((x) => x.status === 'active' && !x.usedAt) ?? myCards.cards[0];
+  check('card 形状齐全（前端列表直接读）', ['id', 'code', 'type', 'cardType', 'status', 'claimed', 'expiresAt', 'validDays'].every((k) => k in myCard), `${myCard.type}/${myCard.status}`);
+
+  const claim1 = await api('claimCard', { cardId: myCard.id });
+  check('claimCard → { card, claimed }', typeof claim1.claimed === 'boolean' && !!claim1.card?.id, `claimed=${claim1.claimed}`);
+  const claim2 = await api('claimCard', { cardId: myCard.id });
+  check('claimCard 幂等（第二次 claimed=false，不报错）', claim2.claimed === false);
+
+  const subBeforeCard = await api('getSubscription', { teamId: TEAM_ID });
+  const cardApplied = await api('applyCard', { cardId: myCard.id });
+  check('applyCard → { card, cardApplied, planId, grantedMilli, balance }', cardApplied.applied === true && cardApplied.grantedMilli > 0, `+${cardApplied.grantedMilli} → ${cardApplied.balance}`);
+  check('用卡后 status = used', cardApplied.card.status === 'used');
+  const subAfterCard = await api('getSubscription', { teamId: TEAM_ID });
+  check('额度真实到账（团队余额精确增加）', subAfterCard.subscription.creditBalance === subBeforeCard.subscription.creditBalance + cardApplied.grantedMilli, `${subBeforeCard.subscription.creditBalance} → ${subAfterCard.subscription.creditBalance}`);
+  const PLAN_RANK = { free: 0, plus: 1, pro: 2, ultra: 3, team: 4, enterprise: 5 };
+  check('用卡升级套餐且绝不降档', (PLAN_RANK[subAfterCard.subscription.planId] ?? 0) >= (PLAN_RANK[subBeforeCard.subscription.planId] ?? 0), `${subBeforeCard.subscription.planId} → ${subAfterCard.subscription.planId}`);
+  const applyTwice = await api('applyCard', { cardId: myCard.id }).catch((e) => e);
+  check('重复使用返回 CONFLICT', applyTwice.code === 'CONFLICT', applyTwice.code);
+
+  const ledgerCard = await api('getCreditLedger', { teamId: TEAM_ID, limit: 20 });
+  const ledgerRows = ledgerCard.entries ?? ledgerCard.rows ?? [];
+  check('用卡写了一条 kind=card 的流水（前端按 cardType 显示名称）', ledgerRows.some((e) => e.kind === 'card' || e.reason === 'card'), `${ledgerRows.length} 条里命中`);
+
+  /* ---------------- 16d. 图片生成 ---------------- */
+  section('16d. 图片生成（零依赖 PNG 编码 + 矢量 SVG）');
+
+  const imgs0 = await api('getImages', { teamId: TEAM_ID, limit: 20 });
+  check('getImages → { images, total }', Array.isArray(imgs0.images), `${imgs0.total} 张`);
+
+  const genRaster = await api('generateImage', { teamId: TEAM_ID, prompt: '一只在写代码的龙虾', kind: 'raster', aspectRatio: '16:9', count: 2 });
+  check('generateImage → { images, count }', genRaster.count === 2 && genRaster.images.length === 2);
+  const genImg = genRaster.images[0];
+  check('image 形状齐全（前端 onSuccess 直接塞缓存）', ['id', 'kind', 'model', 'prompt', 'status', 'url', 'size', 'params', 'aspectRatio'].every((k) => k in genImg), `${genImg.size?.width}×${genImg.size?.height}`);
+  check('16:9 真的算出 16:9 尺寸', !!genImg.size && Math.abs(genImg.size.width / genImg.size.height - 16 / 9) < 0.02, `${genImg.size?.width}×${genImg.size?.height}`);
+
+  const pngRes = await fetch(new URL(genImg.url, BASE));
+  const pngBuf = Buffer.from(await pngRes.arrayBuffer());
+  check('生成的 PNG 可下载', pngRes.status === 200, `${pngBuf.length}B`);
+  check('是合法 PNG（魔数 89 50 4E 47）', pngBuf.subarray(0, 4).toString('hex') === '89504e47');
+  check('PNG 结构完整（IHDR / IDAT / IEND）', pngBuf.includes(Buffer.from('IHDR')) && pngBuf.includes(Buffer.from('IDAT')) && pngBuf.includes(Buffer.from('IEND')));
+  check('IHDR 里的宽高与接口返回一致', pngBuf.readUInt32BE(16) === genImg.size.width && pngBuf.readUInt32BE(20) === genImg.size.height, `${pngBuf.readUInt32BE(16)}×${pngBuf.readUInt32BE(20)}`);
+
+  const balAfterImg = (await api('getSubscription', { teamId: TEAM_ID })).subscription.creditBalance;
+  check('生成图片真实扣额度', balAfterImg < subAfterCard.subscription.creditBalance, `${subAfterCard.subscription.creditBalance} → ${balAfterImg}`);
+
+  const genVec = await api('generateImage', { teamId: TEAM_ID, prompt: '季度增长折线图', kind: 'vector' });
+  check('矢量图返回可渲染的 SVG 源码', typeof genVec.images[0]?.svg === 'string' && genVec.images[0].svg.startsWith('<svg'), `${genVec.images[0]?.svg?.length}B`);
+
+  const imgRetried = await api('retryImage', { id: genImg.id });
+  check('retryImage → { image }', imgRetried.image?.id === genImg.id && imgRetried.image.status === 'ready');
+
+  const vecImgId = genVec.images[0].id;
+  const updImg = await api('updateImage', { id: vecImgId, svg: '<svg xmlns="http://www.w3.org/2000/svg"><rect width="8" height="8"/></svg>' });
+  check('updateImage 把编辑器里的 SVG 写回', updImg.image.svg.includes('<rect'));
+
+  const dlImg = await api('downloadImage', { id: genImg.id });
+  check('downloadImage → { url, name }', typeof dlImg.url === 'string', dlImg.url);
+
+  const delImg = await api('deleteImage', { id: genImg.id });
+  check('deleteImage → { ok, id }', delImg.ok === true);
+  const imgs1 = await api('getImages', { teamId: TEAM_ID, limit: 50 });
+  check('删除后列表不再包含它', !imgs1.images.some((x) => x.id === genImg.id), `剩 ${imgs1.total} 张`);
+
+  /* ---------------- 16e. 子智能体与 MCP ---------------- */
+  section('16e. 子智能体与 MCP 服务器');
+
+  const newProj = await api('createProject', { teamId: TEAM_ID, name: 'E2E 子智能体项目', instruction: '测试用' });
+  const PROJ_ID = newProj.project?.id;
+  check('createProject（给子智能体当作用域）', !!PROJ_ID, PROJ_ID?.slice(0, 8));
+
+  const sa0 = await api('getSubagents', { projectId: PROJ_ID });
+  check('getSubagents → { subagents, total }', Array.isArray(sa0.subagents), `${sa0.total} 个`);
+
+  const saNew = await api('createSubagent', { projectId: PROJ_ID, fields: { name: '代码审查员', description: '审查 PR', prompt: '请审查这段代码', skills: ['literature-review'] } });
+  check('createSubagent → { subagent, subagents }', !!saNew.subagent?.id && Array.isArray(saNew.subagents), saNew.subagent?.filename);
+  check('content 是 frontmatter + 正文的 Markdown（编辑器直接展示）', saNew.subagent.content.startsWith('---') && saNew.subagent.content.includes('name: 代码审查员') && saNew.subagent.content.includes('请审查这段代码'));
+  check('skills 写进 frontmatter', saNew.subagent.content.includes('skills: literature-review'));
+
+  const saUpd = await api('updateSubagent', { projectId: PROJ_ID, filename: saNew.subagent.filename, description: '审查 PR + 补测试' });
+  check('updateSubagent → { subagent }', saUpd.subagent.description.includes('补测试'));
+
+  const saBad = await api('createSubagent', { projectId: PROJ_ID, fields: { name: '-bad:name', description: '', prompt: '' } }).catch((e) => e);
+  check('非法名称被拒（不能 - 开头 / 含 :）', saBad.code === 'BAD_REQUEST', saBad.code);
+
+  const saDup = await api('createSubagent', { projectId: PROJ_ID, fields: { name: '代码审查员', description: '', prompt: '' } }).catch((e) => e);
+  check('同名子智能体返回 CONFLICT', saDup.code === 'CONFLICT', saDup.code);
+
+  const mcp0 = await api('getMcpServers', { projectId: PROJ_ID });
+  check('getMcpServers → { mcpServers, total }', Array.isArray(mcp0.mcpServers), `${mcp0.total} 个`);
+
+  const mcpUp = await api('upsertMcpServer', { projectId: PROJ_ID, name: 'local-fs', transport: 'stdio', command: 'npx', args: ['-y', '@modelcontextprotocol/server-filesystem'], env: { ROOT: '/tmp' } });
+  check('upsertMcpServer → { mcpServer, mcpServers }', mcpUp.mcpServer?.name === 'local-fs', mcpUp.mcpServer?.transport);
+  check('config 归一化（args 数组 / env 对象 / enabled）', Array.isArray(mcpUp.mcpServer.args) && typeof mcpUp.mcpServer.env === 'object' && mcpUp.mcpServer.enabled === true);
+
+  const mcpUp2 = await api('upsertMcpServer', { projectId: PROJ_ID, name: 'local-fs', transport: 'stdio', command: 'node', args: ['server.js'] });
+  check('同名 upsert 是更新而不是新增', mcpUp2.mcpServer.command === 'node' && mcpUp2.mcpServers.filter((m) => m.name === 'local-fs').length === 1);
+
+  const mcpBad = await api('upsertMcpServer', { projectId: PROJ_ID, name: 'bad name!', config: {} }).catch((e) => e);
+  check('非法 MCP 名称被拒（/^[A-Za-z0-9_-]{1,64}$/）', mcpBad.code === 'BAD_REQUEST', mcpBad.code);
+
+  const mcpProbe = await api('probeMcpServer', { projectId: PROJ_ID, config: { transport: 'stdio', command: 'npx', args: ['-y', 'x'] } });
+  check('probeMcpServer → { result }（前端 .then(e => e.result)）', !!mcpProbe.result && mcpProbe.result.ok === true, String(mcpProbe.result?.message ?? '').slice(0, 24));
+
+  const mcpRm = await api('removeMcpServer', { projectId: PROJ_ID, name: 'local-fs' });
+  check('removeMcpServer → { ok, name }', mcpRm.ok === true);
+
+  const saDel = await api('deleteSubagent', { projectId: PROJ_ID, filename: saNew.subagent.filename });
+  check('deleteSubagent → { ok, filename }', saDel.ok === true);
+
+  /* ---------------- 16f. 项目文件 · 项目终端 ---------------- */
+  section('16f. 项目文件 · 项目终端 · 项目 Git');
+
+  const pFiles = await api('getProjectFiles', { projectId: PROJ_ID, path: '' });
+  check('getProjectFiles → { entries, projectId, path }', Array.isArray(pFiles.entries) && pFiles.projectId === PROJ_ID, `${pFiles.entries.length} 项`);
+
+  const pIdx = await api('getProjectFileIndex', { projectId: PROJ_ID });
+  check('getProjectFileIndex → { entries, projectId }', Array.isArray(pIdx.entries) && pIdx.projectId === PROJ_ID, `${pIdx.entries.length} 个文件`);
+
+  const pGit = await api('getProjectGitStatus', { projectId: PROJ_ID });
+  check('getProjectGitStatus → { changes, projectId }', Array.isArray(pGit.changes) && pGit.projectId === PROJ_ID, `${pGit.changes.length} 处改动`);
+
+  const pHost = await api('getHostProjects', { teamId: TEAM_ID });
+  check('getHostProjects → { projects, total }', Array.isArray(pHost.projects) && pHost.projects.some((x) => x.id === PROJ_ID), `${pHost.total} 个项目`);
+
+  const pt0 = await api('getProjectTerminals', { projectId: PROJ_ID });
+  check('getProjectTerminals → { terminals, total }', Array.isArray(pt0.terminals), `${pt0.total} 个`);
+
+  const ptNew = await api('createProjectTerminal', { projectId: PROJ_ID, title: 'bash', cols: 120, rows: 30 });
+  check('createProjectTerminal → { terminal, ticket }', !!ptNew.terminal?.id && typeof ptNew.ticket === 'string', `ticket=${String(ptNew.ticket).slice(0, 8)}…`);
+  check('终端形状含前端解构的字段', ['id', 'projectId', 'title', 'cwd', 'state', 'cols', 'rows'].every((k) => k in ptNew.terminal));
+
+  // 项目终端复用 chat.mjs 同一张票据表 → WS 必须真的能连上并执行命令
+  const pws = await wsConnect(`${BASE.replace(/^http/, 'ws')}/api/terminal/ws?ticket=${encodeURIComponent(ptNew.ticket)}&cols=120&rows=30`);
+  const pBanner = await pws.waitFor((t) => t.includes('本地复刻终端'), 8000).catch((e) => String(e.message));
+  check('项目终端 WebSocket 握手成功（票据表与会话终端共用）', typeof pBanner === 'string' && !pBanner.startsWith('等待'), String(pBanner).slice(0, 30));
+  pws.send('pwd\r');
+  const pPwd = await pws.waitFor((t) => t.includes('/') && t.length > 4, 8000).catch((e) => String(e.message));
+  check('项目终端能执行 pwd', typeof pPwd === 'string' && !pPwd.startsWith('等待'), String(pPwd).replace(/\x1b\[[0-9;]*m/g, '').trim().slice(0, 40));
+  pws.close();
+
+  const ptAt = await api('attachProjectTerminal', { projectId: PROJ_ID, terminalId: ptNew.terminal.id });
+  check('attachProjectTerminal → { ticket, terminal }', typeof ptAt.ticket === 'string');
+
+  const ptUp = await api('updateProjectTerminal', { projectId: PROJ_ID, terminalId: ptNew.terminal.id, name: 'zsh', cols: 100, rows: 40 });
+  check('updateProjectTerminal 改名 + 改尺寸', ptUp.terminal.title === 'zsh' && ptUp.terminal.cols === 100 && ptUp.terminal.rows === 40);
+
+  const ptRe = await api('reorderProjectTerminal', { projectId: PROJ_ID, terminalId: ptNew.terminal.id, afterId: null });
+  check('reorderProjectTerminal → { ok, order }', ptRe.ok === true && Array.isArray(ptRe.order));
+
+  const ptClosed = await api('closeProjectTerminal', { projectId: PROJ_ID, terminalId: ptNew.terminal.id });
+  check('closeProjectTerminal → { ok }', ptClosed.ok === true);
+  const ptAfter = await api('getProjectTerminals', { projectId: PROJ_ID });
+  check('关闭后不再出现在列表里', !ptAfter.terminals.some((t) => t.id === ptNew.terminal.id), `${ptAfter.total} 个`);
+
+  const pLink = await api('createProjectFileLink', { projectId: PROJ_ID, path: 'README.md' });
+  check('createProjectFileLink 也是 { link:{url} }', typeof pLink.link?.url === 'string', pLink.link?.url);
+  check('直链 url 带 ?（前端会再拼 &download=1）', String(pLink.link?.url).includes('?'));
+
+  const pSess = await api('createProjectOfficeSession', { projectId: PROJ_ID, path: 'README.md' });
+  check('createProjectOfficeSession 也是 ONLYOFFICE 会话', !!pSess.session?.config?.document?.key);
+
+  const dlPf = await apiBlob('downloadProjectFile', { projectId: PROJ_ID, path: 'README.md' });
+  check('downloadProjectFile 返回真实文件', dlPf.blob.length > 0 && dlPf.disposition.includes('README.md'), `${dlPf.blob.length}B`);
+
+  const dlPd = await apiBlob('downloadProjectDir', { projectId: PROJ_ID, path: '' });
+  check('downloadProjectDir 返回可解压的 zip', dlPd.blob.subarray(0, 4).toString('hex') === '504b0304' && dlPd.blob.includes(Buffer.from([0x50, 0x4b, 0x05, 0x06])), `${dlPd.blob.length}B · ${dlPd.filename}`);
+
+  const roPrj = await api('reorderProject', { projectId: PROJ_ID, afterId: null });
+  check('reorderProject → { ok }', roPrj.ok === true);
+
+  /* ---------------- 16g. 会话 Git 面板与新版杂项 ---------------- */
+  section('16g. 会话 Git 面板与新版杂项命令');
+
+  const gSt = await api('getConversationGitStatus', { conversationId });
+  check('getConversationGitStatus → { changes }', Array.isArray(gSt.changes), `${gSt.changes.length} 处`);
+
+  const gSnap = await api('getConversationGitSnapshot', { conversationId });
+  check('getConversationGitSnapshot → { changes, targets, stashes }', Array.isArray(gSnap.changes) && Array.isArray(gSnap.targets), `${gSnap.targets.length} 个 target`);
+  check('targets[0] 是 worktree（前端下拉框第一项）', gSnap.targets[0]?.kind === 'worktree');
+
+  const gFiles = await api('getConversationGitFiles', { conversationId, target: { kind: 'worktree' } });
+  check('getConversationGitFiles → { files, total }', Array.isArray(gFiles.files), `${gFiles.files.length} 个`);
+
+  const gDiff = await api('getConversationGitDiff', { conversationId, target: { kind: 'worktree' } });
+  check('getConversationGitDiff → { diff }', !!gDiff && typeof gDiff === 'object', Object.keys(gDiff).slice(0, 4).join(','));
+
+  const gHist = await api('getConversationGitHistory', { conversationId, skip: 0 });
+  check('getConversationGitHistory → { commits, hasMore, total }', Array.isArray(gHist.commits) && typeof gHist.hasMore === 'boolean', `${gHist.commits.length}/${gHist.total}`);
+
+  const gCmp = await api('getConversationGitCompare', { conversationId, target: { kind: 'change', path: 'README.md' } });
+  check('getConversationGitCompare → { binary, tooLarge, size }', 'binary' in gCmp && 'tooLarge' in gCmp && 'size' in gCmp, `size=${gCmp.size} binary=${gCmp.binary}`);
+
+  const read1 = await api('markConversationRead', { conversationId });
+  check('markConversationRead → { ok, conversationId, lastReadAt }', read1.ok === true && !!read1.lastReadAt);
+
+  const ro1 = await api('reorderConversation', { conversationId, afterId: null });
+  check('reorderConversation → { ok }', ro1.ok === true);
+  const ro2 = await api('reorderPinnedConversation', { conversationId, afterId: null });
+  check('reorderPinnedConversation → { ok }（置顶区排序）', ro2.ok === true);
+
+  const uploadPrep = await api('prepareConversationUpload', { conversationId, size: 1024, name: 'a.txt' });
+  check('prepareConversationUpload 返回上传凭据', !!uploadPrep && typeof uploadPrep === 'object', Object.keys(uploadPrep).slice(0, 5).join(','));
+
+  const linkPrev = await api('getLinkPreview', { url: 'https://example.com' });
+  check('getLinkPreview → { preview }（前端 then(e => e.preview)）', !!linkPrev.preview && typeof linkPrev.preview.url === 'string', linkPrev.preview?.siteName);
+
+  const myOrders = await api('getPaymentOrders', { teamId: TEAM_ID, limit: 10, offset: 0 });
+  const payDocs = await api('getPaymentDocuments', { teamId: TEAM_ID, orderId: (myOrders.orders ?? [])[0]?.id });
+  check('getPaymentDocuments → { documents, order, invoices, total }', Array.isArray(payDocs.documents) && payDocs.documents.length > 0, `${payDocs.total} 份凭证`);
+  check('凭证行含前端表格要的字段', ['kind', 'title', 'amountCents', 'status', 'url'].every((k) => k in (payDocs.documents[0] ?? {})), payDocs.documents[0]?.kind);
+
+  /* ---------------- 16h. 主机目录 · 技能包 · 后台工单与报表 ---------------- */
+  section('16h. 主机目录选择 · 技能包上传 · 后台工单与报表');
+
+  const hostsNow = await api('getHosts', { teamId: TEAM_ID });
+  const hostRow = (hostsNow.hosts ?? [])[0];
+  if (hostRow) {
+    const picked = await api('pickHostDirectory', { hostId: hostRow.id });
+    check('pickHostDirectory → { path, hostId, root }', typeof picked.path === 'string' && picked.path.length > 0, picked.path);
+  } else {
+    check('pickHostDirectory → { path, hostId, root }', false, '无主机可用');
+  }
+
+  const skl = await api('getSkills', { teamId: TEAM_ID });
+  const skillRow = (skl.skills ?? skl.items ?? [])[0];
+  if (skillRow) {
+    const sfile = await apiBlob('downloadSkillFile', { teamId: TEAM_ID, slug: skillRow.slug, path: 'SKILL.md' });
+    check('downloadSkillFile 返回真实技能文件', sfile.blob.length > 0, `${sfile.blob.length}B · ${sfile.disposition}`);
+  } else {
+    check('downloadSkillFile 返回真实技能文件', false, '无技能可用');
+  }
+
+  // 真造一个 zip 上传，验证是「真解包」而不是只记一条记录
+  const { makeZip } = await import('../server/lib/zip.mjs');
+  const zipBuf = makeZip([
+    { path: 'SKILL.md', content: '---\nname: E2E 上传技能\ndescription: 端到端测试用\n---\n\n正文内容\n' },
+    { path: 'helper.py', content: 'print(1)\n' },
+  ]);
+  if (hostRow) {
+    const upSkill = await apiUpload('uploadHostSkillArchive', { hostId: hostRow.id }, zipBuf, 'application/zip');
+    check('uploadHostSkillArchive 真解包并建成技能', !!upSkill.skill?.slug, upSkill.skill?.slug);
+    check('SKILL.md 的 frontmatter 被解析成 name / description', upSkill.skill?.title === 'E2E 上传技能' && upSkill.skill?.description === '端到端测试用', upSkill.skill?.title);
+    check('技能包里的文件都落盘（files 列表）', (upSkill.skill?.files ?? []).length === 2, `${(upSkill.skill?.files ?? []).length} 个文件`);
+  } else {
+    check('uploadHostSkillArchive 真解包并建成技能', false, '无主机可用');
+  }
+
+  // 切回管理员：撤回工单消息 / 删除工单 / 参与度与收入报表 / 角色
+  TOKEN = null;
+  const admAgain = await fetch(`${BASE}/api/auth/sign-in/phone-number`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phoneNumber: ADMIN_PHONE, password: PASSWORD }),
+  });
+  TOKEN = admAgain.headers.get('set-auth-token');
+  check('切回管理员', !!TOKEN);
+
+  const engReport = await api('adminGetEngagementReport', { days: 30 });
+  check('adminGetEngagementReport → { items, byHour, total }', Array.isArray(engReport.items) && engReport.items.length > 0 && Array.isArray(engReport.byHour), `${engReport.items.length} 项 · byHour ${engReport.byHour.length}`);
+  check('报表行是 { key, label, total, value }（前端条形榜直接读）', ['key', 'label', 'total', 'value'].every((k) => k in engReport.items[0]));
+
+  const revReport = await api('adminGetRevenueReport', { days: 30 });
+  check('adminGetRevenueReport → { items, totalCents, currency }', Array.isArray(revReport.items) && typeof revReport.totalCents === 'number', `¥${(revReport.totalCents / 100).toFixed(2)} · ${revReport.orders} 单`);
+  check('收入报表含 plans / topups / refunded', ['plans', 'topups', 'refunded'].every((k) => k in revReport));
+
+  const admTickets = await api('adminGetTickets', { limit: 20, offset: 0 });
+  const ticketRow = (admTickets.tickets ?? [])[0];
+  if (ticketRow) {
+    const tDetail = await api('adminGetTicket', { id: ticketRow.id });
+    const msgs = tDetail.messages ?? tDetail.ticket?.messages ?? [];
+    if (msgs.length) {
+      const recalled = await api('adminRecallTicketMessage', { messageId: msgs[msgs.length - 1].id });
+      check('adminRecallTicketMessage → { ok, id, recalledAt }', recalled.ok === true && !!recalled.recalledAt);
+    } else {
+      check('adminRecallTicketMessage → { ok, id, recalledAt }', false, '无工单消息');
+    }
+    const delT = await api('adminDeleteTicket', { id: ticketRow.id });
+    check('adminDeleteTicket → { ok, id, status }', delT.ok === true && delT.status === 'deleted');
+  } else {
+    check('adminDeleteTicket → { ok, id, status }', false, '无工单');
+  }
+
+  const roleUpd = await api('updateUserRoles', { userId: targetUserId, roles: ['admin'] });
+  check('updateUserRoles → { ok, userId, roles, role }', roleUpd.ok === true && roleUpd.roles.includes('admin'), roleUpd.role);
+  await api('updateUserRoles', { userId: targetUserId, roles: ['user'] });
+  const urBack = await api('adminGetUserDetail', { userId: targetUserId });
+  check('角色可还原（不污染演示数据）', urBack.user?.role === 'user', urBack.user?.role);
+
   /* ---------------- 17. 命令注册表覆盖 ---------------- */
   section('17. 命令注册表覆盖度');
 

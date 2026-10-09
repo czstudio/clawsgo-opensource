@@ -1,0 +1,1 @@
+import{t as e}from"./runtime-Jr9NGD9h.js";var t=()=>`全部来源`,n=()=>`All sources`,r=((r={},i={})=>(i.locale??e())===`en`?n(r):t(r)),i=()=>`邀请注册`,a=()=>`Invited`,o=((t={},n={})=>(n.locale??e())===`en`?a(t):i(t)),s=()=>`自然注册`,c=()=>`Organic`,l=((t={},n={})=>(n.locale??e())===`en`?c(t):s(t));export{o as n,r,l as t};

@@ -1,0 +1,1 @@
+import{O as e}from"./createBaseUIEventDetails-D_W-N7V5.js";function t(t){return e(t,`base-ui`)}export{t};

@@ -9,6 +9,8 @@ import { profile, device, project, team, agentMemoryEntry } from '../lib/shapes.
 import { workspaceDir, safeJoin } from '../lib/workspace.mjs';
 import { req, notFound, need, badRequest } from '../lib/errors.mjs';
 
+const badReq = (m) => badRequest(m);
+
 /* ------------------------------------------------------------------ */
 /* 资料                                                                */
 /* ------------------------------------------------------------------ */
@@ -531,6 +533,84 @@ async function getUserDetail(p, ctx) {
   };
 }
 
+
+/* ------------------------------------------------------------------ */
+/* 链接预览（线上新版，markdown-D1ENAiuX.js）                          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * 前端：n('getLinkPreview',{url}).then(e => e.preview)
+ * 缓存键 ['linkPreview', url]，staleTime 无穷、retry:false ——
+ * 所以失败也必须给个 preview 对象，否则 UI 会一直挂在 loading。
+ */
+async function getLinkPreview(p, ctx) {
+  const url = req(p, 'url');
+  let parsed;
+  try {
+    parsed = new URL(String(url));
+  } catch {
+    throw badReq('链接不合法');
+  }
+  if (!/^https?:$/.test(parsed.protocol)) {
+    return { preview: { url: String(url), title: null, description: null, image: null, siteName: parsed.hostname, error: 'unsupported-scheme' } };
+  }
+  const fallback = {
+    url: String(url),
+    title: parsed.hostname,
+    description: null,
+    image: null,
+    siteName: parsed.hostname,
+    fetched: false,
+  };
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 6000);
+    const resp = await fetch(String(url), {
+      method: 'GET',
+      redirect: 'follow',
+      signal: ctrl.signal,
+      headers: { 'User-Agent': 'ClawsGO-LinkPreview/1.0', Accept: 'text/html,*/*' },
+    }).finally(() => clearTimeout(timer));
+    const ctype = resp.headers.get('content-type') ?? '';
+    if (!/text\/html|text\/plain/i.test(ctype)) {
+      return { preview: { ...fallback, fetched: true, kind: 'binary', contentType: ctype } };
+    }
+    const html = (await resp.text()).slice(0, 400000);
+    const meta = (name) => {
+      const m =
+        new RegExp(`<meta[^>]+(?:property|name)=["']${name}["'][^>]*content=["']([^"']*)["']`, 'i').exec(html) ??
+        new RegExp(`<meta[^>]+content=["']([^"']*)["'][^>]*(?:property|name)=["']${name}["']`, 'i').exec(html);
+      return m ? decodeEntities(m[1]) : null;
+    };
+    const titleM = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(html);
+    return {
+      preview: {
+        url: String(url),
+        title: meta('og:title') ?? (titleM ? decodeEntities(titleM[1].trim()) : null) ?? parsed.hostname,
+        description: meta('og:description') ?? meta('description'),
+        image: meta('og:image'),
+        siteName: meta('og:site_name') ?? parsed.hostname,
+        favicon: meta('og:image') ? null : `${parsed.origin}/favicon.ico`,
+        fetched: true,
+        status: resp.status,
+      },
+    };
+  } catch (e) {
+    return { preview: { ...fallback, fetched: false, error: String(e?.message ?? e) } };
+  }
+}
+
+function decodeEntities(s) {
+  return String(s ?? '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .trim();
+}
+
 export const commands = {
   getProfile,
   updateProfile,
@@ -558,4 +638,5 @@ export const commands = {
   cloneProject,
   getUsers,
   getUserDetail,
+  getLinkPreview,
 };

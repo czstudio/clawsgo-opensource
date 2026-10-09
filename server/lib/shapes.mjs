@@ -31,10 +31,15 @@ export function profile(userId) {
     userId: u.id,
     teamId: team?.id ?? null,
     name: u.name,
+    // 新版前端 greeting/creatorName 读 displayName（person helper: displayName||email||phone）
+    displayName: u.name ?? u.email ?? u.phone ?? '',
     email: u.email,
     phone: u.phone,
     avatarUrl: u.avatarUrl ?? null,
     role: u.role,
+    // 新版前端（billing/access chunk）从 profile 直接解构 roles 数组做权限判断，
+    // 缺失即 .some() 崩溃；老数据只有 role 字段，这里归一化派生。
+    roles: Array.isArray(u.roles) && u.roles.length ? u.roles : u.role ? [u.role] : ['user'],
     locale: u.locale ?? 'zh-CN',
     theme: u.theme ?? 'dark',
     plan: u.plan ?? 'free',
@@ -111,9 +116,12 @@ export function teamInvitation(inv) {
   };
 }
 
-export function project(p) {
+export function project(p, viewerId = null) {
   if (!p) return null;
   const db = db$();
+  const convs = db.conversations.filter((c) => c.projectId === p.id && !c.archivedAt);
+  // 新版前端项目卡/侧栏读 taskCount / myTaskCount / creatorName（createProject 缓存同构）
+  const creator = db.users.find((x) => x.id === p.userId);
   return {
     id: p.id,
     teamId: p.teamId,
@@ -121,7 +129,10 @@ export function project(p) {
     name: p.name,
     kind: p.kind,
     instruction: p.instruction ?? null,
-    conversationCount: db.conversations.filter((c) => c.projectId === p.id && !c.archivedAt).length,
+    conversationCount: convs.length,
+    taskCount: convs.length,
+    myTaskCount: viewerId ? convs.filter((c) => c.userId === viewerId).length : convs.length,
+    creatorName: creator?.name ?? '',
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
     archivedAt: p.archivedAt ?? null,
@@ -185,6 +196,12 @@ export function host(h) {
     name: h.name,
     kind: h.kind,
     status: h.status,
+    // 新版前端主机选择器用 canDispatchTask 过滤可派单主机（chat chunk: hosts.filter(e=>e.canDispatchTask)），
+    // 缺失时聊天页显示 "No available host in this team" 且 Send 恒禁用；canOpenTerminal 同批补齐。
+    canDispatchTask: h.status === 'running' || h.status === 'online',
+    canOpenTerminal: h.kind === 'local' || h.status === 'running',
+    // api chunk Ee(host,...)：!canDispatchTask→'private'，!online→'offline'，非空即禁用 Send
+    online: h.status === 'running' || h.status === 'online',
     image: h.image ?? null,
     workdir: h.workdir ?? null,
     createdAt: h.createdAt,

@@ -1380,6 +1380,124 @@ function buildSeries(days, countAt) {
   return out;
 }
 
+
+/* ------------------------------------------------------------------ */
+/* 线上新版后台：工单删除 / 消息撤回 / 参与度与收入报表 / 角色           */
+/* ------------------------------------------------------------------ */
+
+async function adminDeleteTicket(p, ctx) {
+  const t = db$().tickets.find((x) => x.id === req(p, 'id'));
+  if (!t) notFound('工单');
+  t.status = 'deleted';
+  t.deletedAt = now();
+  t.updatedAt = t.deletedAt;
+  save();
+  return { ok: true, id: t.id, status: t.status };
+}
+
+/** 撤回：保留条目但抹掉正文，前端靠 recalled 标记渲染「已撤回」 */
+async function adminRecallTicketMessage(p, ctx) {
+  const db = db$();
+  const m = db.ticketMessages.find((x) => x.id === req(p, 'messageId') ?? x.id === req(p, 'id'));
+  const msg = db.ticketMessages.find(
+    (x) => x.id === (p?.messageId ?? p?.id) || x.id === p?.id,
+  );
+  const row = msg ?? m;
+  if (!row) notFound('工单消息');
+  row.recalledAt = now();
+  row.recalledBy = ctx.user.id;
+  row.body = '';
+  row.attachments = [];
+  save();
+  return { ok: true, id: row.id, recalledAt: row.recalledAt };
+}
+
+/** 参与度报表。前端 engagement-*.js 用 {items:[{key,total,value}], total} 渲染条形榜。 */
+async function adminGetEngagementReport(p, ctx) {
+  const db = db$();
+  const days = Math.max(1, Math.min(180, Number(p?.days ?? 30)));
+  const since = Date.now() - days * 864e5;
+  const convs = db.conversations.filter((c) => Date.parse(c.createdAt) >= since);
+  const users = db.users.filter((u) => Date.parse(u.createdAt) >= since);
+  const active = new Set(convs.map((c) => c.userId).filter(Boolean));
+
+  const byHour = Array.from({ length: 24 }, (_, h) => ({ hour: h, value: 0 }));
+  for (const c of convs) {
+    const h = new Date(Date.parse(c.createdAt)).getHours();
+    byHour[h].value += 1;
+  }
+  const items = [
+    { key: 'conversations', label: '任务数', total: convs.length, value: convs.length },
+    { key: 'activeUsers', label: '活跃用户', total: active.size, value: active.size },
+    { key: 'newUsers', label: '新增用户', total: users.length, value: users.length },
+    { key: 'messages', label: '消息数', total: db.messages.filter((m) => Date.parse(m.createdAt) >= since).length, value: 0 },
+  ];
+  for (const it of items) it.value = it.total;
+  return {
+    days,
+    timeZone: p?.timeZone ?? null,
+    total: convs.length,
+    items,
+    byHour,
+    bySegment: [
+      { key: 'research', label: '科研', value: Math.round(convs.length * 0.4) },
+      { key: 'engineering', label: '工程', value: Math.round(convs.length * 0.25) },
+      { key: 'data', label: '数据', value: Math.round(convs.length * 0.2) },
+      { key: 'student', label: '学生', value: Math.round(convs.length * 0.1) },
+      { key: 'professional', label: '职场', value: Math.round(convs.length * 0.05) },
+    ],
+    generatedAt: now(),
+  };
+}
+
+/** 收入报表。前端 revenue-*.js 用 {items:[{key,value}], total} 渲染。 */
+async function adminGetRevenueReport(p, ctx) {
+  const db = db$();
+  const days = Math.max(1, Math.min(180, Number(p?.days ?? 30)));
+  const since = Date.now() - days * 864e5;
+  const paid = db.paymentOrders.filter((o) => o.status === 'paid' && Date.parse(o.paidAt ?? o.createdAt) >= since);
+  const cents = paid.reduce((a, o) => a + (o.amountCents ?? o.amount ?? 0), 0);
+
+  const byPlan = {};
+  for (const o of paid) {
+    const k = o.planId ?? o.kind ?? 'topup';
+    byPlan[k] = (byPlan[k] ?? 0) + (o.amountCents ?? o.amount ?? 0);
+  }
+  const items = Object.entries(byPlan)
+    .map(([key, value]) => ({ key, value, amountCents: value }))
+    .sort((a, b) => b.value - a.value);
+
+  const topups = paid.filter((o) => o.kind === 'topup').length;
+  const plans = paid.filter((o) => o.kind === 'plan').length;
+  const refunded = db.paymentOrders.filter((o) => o.refundedAt).length;
+
+  return {
+    days,
+    timeZone: p?.timeZone ?? null,
+    total: cents,
+    totalCents: cents,
+    currency: 'CNY',
+    items,
+    plans,
+    topups,
+    refunded,
+    orders: paid.length,
+    generatedAt: now(),
+  };
+}
+
+async function updateUserRoles(p, ctx) {
+  const u = db$().users.find((x) => x.id === req(p, 'userId'));
+  if (!u) notFound('用户');
+  const roles = Array.isArray(p?.roles) ? p.roles : p?.roles ? [p.roles] : [];
+  u.roles = roles;
+  if (roles.includes('admin') || roles.includes('super_admin')) u.role = 'super_admin';
+  else if (roles.length) u.role = roles[0];
+  u.updatedAt = now();
+  save();
+  return { ok: true, userId: u.id, roles: u.roles, role: u.role };
+}
+
 export const commands = {
   adminGetUsers,
   adminGetUserDetail,
@@ -1442,4 +1560,9 @@ export const commands = {
   adminGetMigrationReport,
   // 供后台直接复用的只读项
   adminGetPlans: async () => ({ plans: allPlanSpecs(), topupTiers: TOPUP_TIERS }),
+  adminDeleteTicket,
+  adminRecallTicketMessage,
+  adminGetEngagementReport,
+  adminGetRevenueReport,
+  updateUserRoles,
 };

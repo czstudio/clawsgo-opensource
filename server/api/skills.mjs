@@ -10,6 +10,7 @@ import path from 'node:path';
 import { db$, uuid, now, save } from '../lib/db.mjs';
 import { skill } from '../lib/shapes.mjs';
 import { req, notFound, need, conflict, badRequest } from '../lib/errors.mjs';
+import { readZip } from '../lib/zip.mjs';
 
 export const SKILLS_DIR = path.join(path.resolve(import.meta.dirname, '..'), 'data', 'skills');
 
@@ -610,6 +611,118 @@ async function uploadHostSkill(p, ctx) {
   return { ok: true, skill: skill(row), dir };
 }
 
+
+/* ------------------------------------------------------------------ */
+/* 技能文件下载 / 技能包上传（线上新版）                                */
+/* ------------------------------------------------------------------ */
+
+/**
+ * 前端 SkillDetailDialog：s('downloadSkillFile',{teamId, slug, path})
+ * 返回 Blob，随后 `w(blob, basename)` 落成文件。
+ */
+async function downloadSkillFile(p, ctx) {
+  const slug = req(p, 'slug');
+  const rel = req(p, 'path');
+  const dirs = [
+    path.join(SKILLS_DIR, slug),
+    ...(() => {
+      // 技能可能挂在团队目录下（skills/<teamId>/<slug>）
+      const out = [];
+      try {
+        for (const n of fs.readdirSync(SKILLS_DIR)) {
+          const d = path.join(SKILLS_DIR, n, slug);
+          if (fs.existsSync(d)) out.push(d);
+        }
+      } catch { /* ignore */ }
+      return out;
+    })(),
+  ];
+  let abs = null;
+  for (const d of dirs) {
+    const cand = safeSkillJoin(d, rel);
+    if (cand && fs.existsSync(cand)) { abs = cand; break; }
+  }
+  if (!abs) notFound('技能文件');
+  const buf = fs.readFileSync(abs);
+  const name = path.basename(abs);
+  return {
+    __binary: buf,
+    contentType: name.endsWith('.md') ? 'text/markdown; charset=utf-8' : 'application/octet-stream',
+    filename: name,
+    disposition: `attachment; filename="${name}"`,
+  };
+}
+
+function safeSkillJoin(dir, rel) {
+  const abs = path.resolve(dir, String(rel).replace(/^[/\\]+/, ''));
+  if (!abs.startsWith(path.resolve(dir) + path.sep) && abs !== path.resolve(dir)) return null;
+  return abs;
+}
+
+/**
+ * 上传技能包（zip）。前端：a('uploadHostSkillArchive',{hostId}, await e.archive(), onProgress)
+ * 走的是**原始字节**通道，请求体就是 zip 文件本身。
+ * 真的解包并落盘，然后把 SKILL.md 的 frontmatter 解析成技能记录。
+ */
+async function uploadHostSkillArchive(p, ctx) {
+  const hostId = req(p, 'hostId');
+  const body = ctx.rawBody;
+  if (!body || !body.length) throw badRequest('上传内容为空');
+  const entries = readZip(body);
+  if (!entries.length) throw badRequest('不是有效的 zip 技能包');
+
+  const skillMd = entries.find((e) => /(^|\/)SKILL\.md$/i.test(e.path));
+  let name = null;
+  let description = '';
+  if (skillMd) {
+    const text = skillMd.content.toString('utf8');
+    const fm = /^\uFEFF?---\r?\n([\s\S]*?)\r?\n---/.exec(text);
+    if (fm) {
+      for (const line of fm[1].split(/\r?\n/)) {
+        const m = /^([\w-]+)\s*:\s*(.*)$/.exec(line.trim());
+        if (!m) continue;
+        if (m[1] === 'name') name = m[2].trim();
+        if (m[1] === 'description') description = m[2].trim();
+      }
+    }
+  }
+  const slugRaw = name ?? entries[0]?.path.split('/')[0] ?? `host-skill-${Date.now()}`;
+  const slug = String(slugRaw).toLowerCase().replace(/[\s_]+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '') || `host-skill-${Date.now()}`;
+
+  const dir = path.join(SKILLS_DIR, `host_${hostId}`, slug);
+  fs.mkdirSync(dir, { recursive: true });
+  for (const e of entries) {
+    if (e.path.endsWith('/')) continue;
+    const target = safeSkillJoin(dir, e.path);
+    if (!target) continue;
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, e.content);
+  }
+
+  const db = db$();
+  const row = {
+    id: uuid(),
+    name: slug,
+    slug,
+    title: name ?? slug,
+    description,
+    version: '1.0.0',
+    source: 'host-upload',
+    repo: null,
+    tags: [],
+    installed: true,
+    enabled: true,
+    hostId,
+    installedAt: now(),
+    files: entries.filter((e) => !e.path.endsWith('/')).map((e) => ({ path: e.path, size: e.content.length })),
+    readme: skillMd ? skillMd.content.toString('utf8') : '',
+  };
+  db.skills = db.skills.filter((s) => !(s.hostId === hostId && s.slug === slug));
+  db.skills.push(row);
+  save();
+  return { skill: skill(row), skills: [skill(row)] };
+}
+
 export const commands = {
   getSkills,
   getSkillDetail,
@@ -621,4 +734,6 @@ export const commands = {
   listGithubSkills,
   installHostSkill,
   uploadHostSkill,
+  downloadSkillFile,
+  uploadHostSkillArchive,
 };

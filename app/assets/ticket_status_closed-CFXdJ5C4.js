@@ -1,1 +1,0 @@
-import{t as e}from"./runtime-Df6wkC9G.js";var t=()=>`进行中`,n=()=>`Open`,r=((r={},i={})=>(i.locale??e())===`en`?n(r):t(r)),i=()=>`已关闭`,a=()=>`Closed`,o=((t={},n={})=>(n.locale??e())===`en`?a(t):i(t));export{r as n,o as t};

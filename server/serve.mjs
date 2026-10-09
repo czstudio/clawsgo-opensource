@@ -194,6 +194,26 @@ function startApp() {
         return res.end(html);
       }
 
+      // ---------- 生成的图片（/__images/<file>）----------
+      // generateImage 把位图真画成 PNG 落在 server/data/images/，
+      // 前端 <img src> 与下载按钮都要能直接 GET 到字节。
+      if (p.startsWith('/__images/')) {
+        const name = path.basename(p.slice('/__images/'.length));
+        const abs = safeFile(path.join(ROOT, 'server', 'data', 'images'), '/' + name);
+        if (!abs || !fs.existsSync(abs)) {
+          res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+          return res.end('Not found');
+        }
+        const isSvg = name.toLowerCase().endsWith('.svg');
+        const buf = fs.readFileSync(abs);
+        res.writeHead(200, {
+          'Content-Type': isSvg ? 'image/svg+xml' : 'image/png',
+          'Content-Length': buf.length,
+          'Cache-Control': 'public, max-age=31536000',
+        });
+        return res.end(buf);
+      }
+
       // ---------- 本地 ONLYOFFICE DocsAPI 替身 ----------
       // 前端按 `${session.serverUrl}/web-apps/apps/api/documents/api.js` 加载编辑器；
       // 本地没有真 DocumentServer，这里发一个只读预览版替身，保证面板能渲染而不是报错。

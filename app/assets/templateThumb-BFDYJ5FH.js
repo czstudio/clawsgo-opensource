@@ -1,0 +1,1 @@
+import{t as e}from"./region-B-TY-5rL.js";import{t}from"./runtime-Jr9NGD9h.js";var n=()=>`图像模板`,r=()=>`Image templates`,i=((e={},i={})=>(i.locale??t())===`en`?r(e):n(e)),a=e.id===`cn`?`https://public.clawsgo.cn/image-templates/v1`:`https://public.clawsgo.ai/image-templates/v1`,o=e=>`${a}/${e}.webp`;export{i as n,o as t};

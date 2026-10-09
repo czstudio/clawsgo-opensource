@@ -30,6 +30,10 @@ import { commands as teamCommands } from './teams.mjs';
 import { commands as billingCommands } from './billing.mjs';
 import { commands as supportCommands } from './support.mjs';
 import { commands as adminCommands } from './admin.mjs';
+import { commands as cardCommands } from './cards.mjs';
+import { commands as projectCommands } from './projects.mjs';
+import { commands as agentCommands } from './agents.mjs';
+import { commands as imageCommands } from './images.mjs';
 
 /* ------------------------------------------------------------------ */
 /* 命令注册表                                                          */
@@ -46,6 +50,10 @@ export const COMMANDS = Object.assign(
   billingCommands,
   supportCommands,
   adminCommands,
+  cardCommands,
+  projectCommands,
+  agentCommands,
+  imageCommands,
 );
 
 export const commandNames = () => Object.keys(COMMANDS).sort();

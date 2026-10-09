@@ -1,0 +1,1 @@
+import{t as e}from"./runtime-Jr9NGD9h.js";import{t}from"./registry-B1INsJo1.js";var n=e=>(t(`zh-CN`,e?.count,{}),`${e?.count} 个三角面`),r=e=>t(`en`,e?.count,{})===`one`?`${e?.count} triangle`:`${e?.count} triangles`,i=((t,i={})=>(i.locale??e())===`en`?r(t):n(t));export{i as t};

@@ -1,0 +1,1 @@
+import{t as e}from"./runtime-Jr9NGD9h.js";var t=()=>`这台主机是队友的私有设备，只有机主能在这里发起任务`,n=()=>`This host is a teammate's private device; only its owner can start tasks here`,r=((r={},i={})=>(i.locale??e())===`en`?n(r):t(r));export{r as t};

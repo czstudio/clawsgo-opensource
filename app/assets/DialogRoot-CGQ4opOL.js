@@ -1,0 +1,1 @@
+import{s as e}from"./DialogTitle-BHyf99f1.js";function t(t){return e(`dialog`,t)}export{t};

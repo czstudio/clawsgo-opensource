@@ -1,9 +1,9 @@
 {
-  "at": "2026-09-14T13:00:00.651Z",
+  "at": "2026-10-09T12:54:17.022Z",
   "base": "http://127.0.0.1:5181",
-  "pass": 219,
-  "fail": 0,
-  "seconds": 25.1,
+  "pass": 318,
+  "fail": 1,
+  "seconds": 25.6,
   "results": [
     {
       "name": "恢复出厂状态",
@@ -848,6 +848,406 @@
     {
       "name": "Office 会话支持 lang/theme 透传（影响 key 与 uiTheme）",
       "ok": true
+    },
+    {
+      "name": "adminSearchCardRecipients → { users, missing }",
+      "ok": true
+    },
+    {
+      "name": "找不到的标识进 missing（前端用 Intl.ListFormat 提示）",
+      "ok": true
+    },
+    {
+      "name": "adminIssueCards → { cards, count }",
+      "ok": true
+    },
+    {
+      "name": "卡形状含前端直接读的字段",
+      "ok": true
+    },
+    {
+      "name": "adminGetCardReport → { total, byStatus, byType }",
+      "ok": true
+    },
+    {
+      "name": "报表含 issued7d / issued30d / used30d / expiringSoon",
+      "ok": true
+    },
+    {
+      "name": "adminGetCards → { cards, total }",
+      "ok": true
+    },
+    {
+      "name": "adminGetCards 支持 status / type 过滤",
+      "ok": true
+    },
+    {
+      "name": "adminVoidCard → { card, cardVoided }",
+      "ok": true
+    },
+    {
+      "name": "重复作废返回 CONFLICT",
+      "ok": true
+    },
+    {
+      "name": "切回普通用户",
+      "ok": true
+    },
+    {
+      "name": "getCards → { cards, total }（首次自动补一张演示卡）",
+      "ok": true
+    },
+    {
+      "name": "card 形状齐全（前端列表直接读）",
+      "ok": true
+    },
+    {
+      "name": "claimCard → { card, claimed }",
+      "ok": true
+    },
+    {
+      "name": "claimCard 幂等（第二次 claimed=false，不报错）",
+      "ok": true
+    },
+    {
+      "name": "applyCard → { card, cardApplied, planId, grantedMilli, balance }",
+      "ok": true
+    },
+    {
+      "name": "用卡后 status = used",
+      "ok": true
+    },
+    {
+      "name": "额度真实到账（团队余额精确增加）",
+      "ok": true
+    },
+    {
+      "name": "用卡升级套餐且绝不降档",
+      "ok": true
+    },
+    {
+      "name": "重复使用返回 CONFLICT",
+      "ok": true
+    },
+    {
+      "name": "用卡写了一条 kind=card 的流水（前端按 cardType 显示名称）",
+      "ok": true
+    },
+    {
+      "name": "getImages → { images, total }",
+      "ok": true
+    },
+    {
+      "name": "generateImage → { images, count }",
+      "ok": true
+    },
+    {
+      "name": "image 形状齐全（前端 onSuccess 直接塞缓存）",
+      "ok": true
+    },
+    {
+      "name": "16:9 真的算出 16:9 尺寸",
+      "ok": true
+    },
+    {
+      "name": "生成的 PNG 可下载",
+      "ok": true
+    },
+    {
+      "name": "是合法 PNG（魔数 89 50 4E 47）",
+      "ok": true
+    },
+    {
+      "name": "PNG 结构完整（IHDR / IDAT / IEND）",
+      "ok": true
+    },
+    {
+      "name": "IHDR 里的宽高与接口返回一致",
+      "ok": true
+    },
+    {
+      "name": "生成图片真实扣额度",
+      "ok": true
+    },
+    {
+      "name": "矢量图返回可渲染的 SVG 源码",
+      "ok": true
+    },
+    {
+      "name": "retryImage → { image }",
+      "ok": true
+    },
+    {
+      "name": "updateImage 把编辑器里的 SVG 写回",
+      "ok": true
+    },
+    {
+      "name": "downloadImage → { url, name }",
+      "ok": true
+    },
+    {
+      "name": "deleteImage → { ok, id }",
+      "ok": true
+    },
+    {
+      "name": "删除后列表不再包含它",
+      "ok": true
+    },
+    {
+      "name": "createProject（给子智能体当作用域）",
+      "ok": true
+    },
+    {
+      "name": "getSubagents → { subagents, total }",
+      "ok": true
+    },
+    {
+      "name": "createSubagent → { subagent, subagents }",
+      "ok": true
+    },
+    {
+      "name": "content 是 frontmatter + 正文的 Markdown（编辑器直接展示）",
+      "ok": true
+    },
+    {
+      "name": "skills 写进 frontmatter",
+      "ok": true
+    },
+    {
+      "name": "updateSubagent → { subagent }",
+      "ok": true
+    },
+    {
+      "name": "非法名称被拒（不能 - 开头 / 含 :）",
+      "ok": true
+    },
+    {
+      "name": "同名子智能体返回 CONFLICT",
+      "ok": true
+    },
+    {
+      "name": "getMcpServers → { mcpServers, total }",
+      "ok": true
+    },
+    {
+      "name": "upsertMcpServer → { mcpServer, mcpServers }",
+      "ok": true
+    },
+    {
+      "name": "config 归一化（args 数组 / env 对象 / enabled）",
+      "ok": true
+    },
+    {
+      "name": "同名 upsert 是更新而不是新增",
+      "ok": true
+    },
+    {
+      "name": "非法 MCP 名称被拒（/^[A-Za-z0-9_-]{1,64}$/）",
+      "ok": true
+    },
+    {
+      "name": "probeMcpServer → { result }（前端 .then(e => e.result)）",
+      "ok": true
+    },
+    {
+      "name": "removeMcpServer → { ok, name }",
+      "ok": true
+    },
+    {
+      "name": "deleteSubagent → { ok, filename }",
+      "ok": true
+    },
+    {
+      "name": "getProjectFiles → { entries, projectId, path }",
+      "ok": true
+    },
+    {
+      "name": "getProjectFileIndex → { entries, projectId }",
+      "ok": true
+    },
+    {
+      "name": "getProjectGitStatus → { changes, projectId }",
+      "ok": true
+    },
+    {
+      "name": "getHostProjects → { projects, total }",
+      "ok": true
+    },
+    {
+      "name": "getProjectTerminals → { terminals, total }",
+      "ok": true
+    },
+    {
+      "name": "createProjectTerminal → { terminal, ticket }",
+      "ok": true
+    },
+    {
+      "name": "终端形状含前端解构的字段",
+      "ok": true
+    },
+    {
+      "name": "项目终端 WebSocket 握手成功（票据表与会话终端共用）",
+      "ok": true
+    },
+    {
+      "name": "项目终端能执行 pwd",
+      "ok": true
+    },
+    {
+      "name": "attachProjectTerminal → { ticket, terminal }",
+      "ok": true
+    },
+    {
+      "name": "updateProjectTerminal 改名 + 改尺寸",
+      "ok": true
+    },
+    {
+      "name": "reorderProjectTerminal → { ok, order }",
+      "ok": true
+    },
+    {
+      "name": "closeProjectTerminal → { ok }",
+      "ok": true
+    },
+    {
+      "name": "关闭后不再出现在列表里",
+      "ok": true
+    },
+    {
+      "name": "createProjectFileLink 也是 { link:{url} }",
+      "ok": true
+    },
+    {
+      "name": "直链 url 带 ?（前端会再拼 &download=1）",
+      "ok": true
+    },
+    {
+      "name": "createProjectOfficeSession 也是 ONLYOFFICE 会话",
+      "ok": true
+    },
+    {
+      "name": "downloadProjectFile 返回真实文件",
+      "ok": true
+    },
+    {
+      "name": "downloadProjectDir 返回可解压的 zip",
+      "ok": true
+    },
+    {
+      "name": "reorderProject → { ok }",
+      "ok": true
+    },
+    {
+      "name": "getConversationGitStatus → { changes }",
+      "ok": true
+    },
+    {
+      "name": "getConversationGitSnapshot → { changes, targets, stashes }",
+      "ok": true
+    },
+    {
+      "name": "targets[0] 是 worktree（前端下拉框第一项）",
+      "ok": true
+    },
+    {
+      "name": "getConversationGitFiles → { files, total }",
+      "ok": true
+    },
+    {
+      "name": "getConversationGitDiff → { diff }",
+      "ok": true
+    },
+    {
+      "name": "getConversationGitHistory → { commits, hasMore, total }",
+      "ok": true
+    },
+    {
+      "name": "getConversationGitCompare → { binary, tooLarge, size }",
+      "ok": true
+    },
+    {
+      "name": "markConversationRead → { ok, conversationId, lastReadAt }",
+      "ok": true
+    },
+    {
+      "name": "reorderConversation → { ok }",
+      "ok": true
+    },
+    {
+      "name": "reorderPinnedConversation → { ok }（置顶区排序）",
+      "ok": true
+    },
+    {
+      "name": "prepareConversationUpload 返回上传凭据",
+      "ok": true
+    },
+    {
+      "name": "getLinkPreview → { preview }（前端 then(e => e.preview)）",
+      "ok": true
+    },
+    {
+      "name": "getPaymentDocuments → { documents, order, invoices, total }",
+      "ok": true
+    },
+    {
+      "name": "凭证行含前端表格要的字段",
+      "ok": true
+    },
+    {
+      "name": "pickHostDirectory → { path, hostId, root }",
+      "ok": true
+    },
+    {
+      "name": "downloadSkillFile 返回真实技能文件",
+      "ok": true
+    },
+    {
+      "name": "uploadHostSkillArchive 真解包并建成技能",
+      "ok": true
+    },
+    {
+      "name": "SKILL.md 的 frontmatter 被解析成 name / description",
+      "ok": true
+    },
+    {
+      "name": "技能包里的文件都落盘（files 列表）",
+      "ok": true
+    },
+    {
+      "name": "切回管理员",
+      "ok": true
+    },
+    {
+      "name": "adminGetEngagementReport → { items, byHour, total }",
+      "ok": true
+    },
+    {
+      "name": "报表行是 { key, label, total, value }（前端条形榜直接读）",
+      "ok": true
+    },
+    {
+      "name": "adminGetRevenueReport → { items, totalCents, currency }",
+      "ok": true
+    },
+    {
+      "name": "收入报表含 plans / topups / refunded",
+      "ok": true
+    },
+    {
+      "name": "adminRecallTicketMessage → { ok, id, recalledAt }",
+      "ok": true
+    },
+    {
+      "name": "adminDeleteTicket → { ok, id, status }",
+      "ok": true
+    },
+    {
+      "name": "updateUserRoles → { ok, userId, roles, role }",
+      "ok": true
+    },
+    {
+      "name": "角色可还原（不污染演示数据）",
+      "ok": false
     },
     {
       "name": "契约中的命令都已实现（或在允许的例外清单内）",

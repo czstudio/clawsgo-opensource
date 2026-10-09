@@ -9,6 +9,8 @@
 //  · getMessages **倒序**返回（第 0 页是最新消息），offset 以累计条数递增。
 //  · sendMessage 在会话不存在时由后端按 ensure 参数建档（新会话欢迎页 URL
 //    /chat 本身不建会话，客户端已用 crypto.randomUUID() 预生成 conversationId）。
+import fs from 'node:fs';
+import path from 'node:path';
 import { db$, uuid, now, save, rid, insert } from '../lib/db.mjs';
 import { conversation, message, project, announcement } from '../lib/shapes.mjs';
 import { startAgentRun, abortRun, answerPermission } from '../lib/agent.mjs';
@@ -806,6 +808,194 @@ async function syncTexInverse(p, ctx) {
 /* 导出命令表                                                          */
 /* ------------------------------------------------------------------ */
 
+
+/* ------------------------------------------------------------------ */
+/* Git 面板（线上新版）：快照 / 对比 / 历史 / 文件                      */
+/* ------------------------------------------------------------------ */
+
+/**
+ * 本地工作区不是真 git 仓库，所以「提交历史」按工作区里**真实文件的修改时间**
+ * 推导：每次落盘视作一次变更。这样面板里看到的条数与时间都对应真实文件，
+ * 而不是凭空编的假数据。
+ */
+function workspaceCommits(conversationId) {
+  const root = ensureWorkspace(conversationId);
+  const out = [];
+  const walk = (dir, depth) => {
+    if (depth > 2) return;
+    let names = [];
+    try { names = fs.readdirSync(dir); } catch { return; }
+    for (const n of names) {
+      if (n === '.git' || n === '.seeded') continue;
+      const abs = path.join(dir, n);
+      let st;
+      try { st = fs.statSync(abs); } catch { continue; }
+      if (st.isDirectory()) { walk(abs, depth + 1); continue; }
+      out.push({
+        path: path.relative(root, abs).replace(/\\/g, '/'),
+        mtime: st.mtime.toISOString(),
+        size: st.size,
+      });
+    }
+  };
+  walk(root, 0);
+  return out
+    .sort((a, b) => String(b.mtime).localeCompare(String(a.mtime)))
+    .map((f) => ({
+      hash: fnv1a(`${f.path}@${f.mtime}`).toString(16).padStart(8, '0').slice(0, 8) + fnv1a(f.path).toString(16).padStart(8, '0').slice(0, 8),
+      shortHash: fnv1a(`${f.path}@${f.mtime}`).toString(16).padStart(8, '0').slice(0, 7),
+      author: 'ClawsGO',
+      email: 'noreply@clawsgo.local',
+      date: f.mtime,
+      message: `更新 ${f.path}`,
+      files: [{ path: f.path, status: 'M' }],
+    }));
+}
+
+function fnv1a(text) {
+  let h = 2166136261;
+  for (let i = 0; i < String(text).length; i++) {
+    h ^= String(text).charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+async function getConversationGitSnapshot(p, ctx) {
+  const c = ownConversation(req(p, 'conversationId'), ctx);
+  const st = gitStatus(c.id);
+  const changes = st.changes ?? [];
+  return {
+    ...st,
+    conversationId: c.id,
+    changes,
+    stashes: [],
+    // 前端下拉框直接枚举这些 target
+    targets: [
+      { kind: 'worktree' },
+      ...changes.map((x) => ({ kind: 'change', path: x.path, from: x.from ?? null })),
+    ],
+    generatedAt: now(),
+  };
+}
+
+async function getConversationGitCompare(p, ctx) {
+  const c = ownConversation(req(p, 'conversationId'), ctx);
+  const t = p?.target ?? {};
+  const rel = String(t.path ?? '');
+  const d = gitDiff(c.id, rel);
+  const root = ensureWorkspace(c.id);
+  let size = 0;
+  try { size = fs.statSync(path.join(root, rel)).size; } catch { size = 0; }
+  return {
+    ...d,
+    conversationId: c.id,
+    target: t,
+    binary: rel ? !isTextFile(rel) : false,
+    tooLarge: size > 512 * 1024,
+    size,
+  };
+}
+
+async function getConversationGitFiles(p, ctx) {
+  const c = ownConversation(req(p, 'conversationId'), ctx);
+  const t = p?.target ?? {};
+  const st = gitStatus(c.id);
+  const changes = st.changes ?? [];
+  const files = changes.map((x) => ({
+    path: x.path,
+    status: x.status ?? 'M',
+    from: x.from ?? null,
+    additions: 0,
+    deletions: 0,
+  }));
+  return { conversationId: c.id, target: t, files, changes, total: files.length };
+}
+
+async function getConversationGitHistory(p, ctx) {
+  const c = ownConversation(req(p, 'conversationId'), ctx);
+  const all = workspaceCommits(c.id);
+  const scope = p?.scope ?? 'all';
+  const skip = Math.max(0, Number(p?.skip ?? 0));
+  const take = 20;
+  const page = all.slice(skip, skip + take);
+  return {
+    conversationId: c.id,
+    scope,
+    commits: page,
+    hasMore: skip + page.length < all.length,
+    total: all.length,
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* 已读标记与会话重排（线上新版）                                       */
+/* ------------------------------------------------------------------ */
+
+async function markConversationRead(p, ctx) {
+  const c = ownConversation(req(p, 'conversationId'), ctx);
+  c.lastReadAt = now();
+  c.unreadCount = 0;
+  save();
+  return { ok: true, conversationId: c.id, lastReadAt: c.lastReadAt };
+}
+
+/** 按 afterId 重排；afterId 为 null 表示排到最前。顺序落在 conversation.orderIndex 上。 */
+function reorderWithin(list, id, afterId) {
+  const rest = list.filter((x) => x.id !== id);
+  const at = afterId === null || afterId === undefined ? 0 : rest.findIndex((x) => x.id === afterId) + 1;
+  rest.splice(at < 0 ? rest.length : at, 0, { id });
+  const rank = new Map(rest.map((x, i) => [x.id, i]));
+  return rank;
+}
+
+async function reorderConversation(p, ctx) {
+  const c = ownConversation(req(p, 'conversationId'), ctx);
+  const db = db$();
+  const sibs = db.conversations.filter((x) => x.teamId === c.teamId && !x.archivedAt);
+  const rank = reorderWithin(sibs, c.id, p?.afterId ?? null);
+  for (const x of sibs) x.orderIndex = rank.get(x.id) ?? 0;
+  c.orderIndex = rank.get(c.id) ?? 0;
+  save();
+  return { ok: true };
+}
+
+async function reorderPinnedConversation(p, ctx) {
+  const c = ownConversation(req(p, 'conversationId'), ctx);
+  const db = db$();
+  // 置顶区只对 pinnedAt 非空的会话排序
+  const pinned = db.conversations.filter((x) => x.teamId === c.teamId && !x.archivedAt && x.pinnedAt);
+  if (!pinned.some((x) => x.id === c.id)) {
+    c.pinnedAt = now();
+    pinned.push(c);
+  }
+  const rank = reorderWithin(pinned, c.id, p?.afterId ?? null);
+  for (const x of pinned) x.pinOrder = rank.get(x.id) ?? 0;
+  save();
+  return { ok: true };
+}
+
+async function prepareConversationUpload(p, ctx) {
+  const c = ownConversation(req(p, 'conversationId'), ctx);
+  const db = db$();
+  const rec = {
+    id: uuid(),
+    conversationId: c.id,
+    userId: ctx.user.id,
+    size: Number(p?.size ?? 0),
+    seat: {
+      hostId: p?.hostId ?? null,
+      deviceId: p?.deviceId ?? null,
+      projectId: p?.projectId ?? null,
+    },
+    status: 'prepared',
+    createdAt: now(),
+  };
+  (db.uploadIntents ??= []).push(rec);
+  save();
+  return { ok: true, uploadId: rec.id };
+}
+
 export const commands = {
   // 会话
   getConversations,
@@ -838,6 +1028,14 @@ export const commands = {
   downloadConversationDir,
   getConversationGitStatus,
   getConversationGitDiff,
+  getConversationGitSnapshot,
+  getConversationGitCompare,
+  getConversationGitFiles,
+  getConversationGitHistory,
+  markConversationRead,
+  reorderConversation,
+  reorderPinnedConversation,
+  prepareConversationUpload,
   listFigures,
   // 终端 / 宿主交互
   getConversationTerminals,

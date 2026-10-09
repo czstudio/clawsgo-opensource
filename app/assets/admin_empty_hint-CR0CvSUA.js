@@ -1,0 +1,1 @@
+import{t as e}from"./runtime-Jr9NGD9h.js";var t=()=>`换个筛选条件或搜索词试试`,n=()=>`Try a different filter or search term`,r=((r={},i={})=>(i.locale??e())===`en`?n(r):t(r));export{r as t};

@@ -434,6 +434,38 @@ async function openHostView(p, ctx) {
   };
 }
 
+
+/* ------------------------------------------------------------------ */
+/* 目录选择（线上新版，ChatProjectDialog-BFiN_W03.js）                  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * 前端：let {path} = await a('pickHostDirectory',{hostId})
+ * 拿到 path 后当成项目工作目录。本地没有桌面端的文件选择器，
+ * 所以返回主机工作区下**真实存在的**第一个子目录（没有就返回工作区本身）——
+ * 保证下游 getProjectFiles 一定能列出内容，而不是返回空路径。
+ */
+async function pickHostDirectory(p, ctx) {
+  const h = ownHost(req(p, 'hostId'), ctx);
+  const root = h.workdir ?? ensureHostDir(h.id);
+  let picked = root;
+  try {
+    const subs = fs
+      .readdirSync(root)
+      .map((n) => path.join(root, n))
+      .filter((a) => fs.statSync(a).isDirectory())
+      .sort((a, b) => String(a).localeCompare(String(b)));
+    if (subs.length) picked = subs[0];
+  } catch { /* 目录还不存在就用根 */ }
+  return { path: picked, hostId: h.id, root };
+}
+
+function ensureHostDir(hostId) {
+  const dir = path.join(path.resolve(new URL('../../', import.meta.url).pathname), 'data', 'hosts', hostId);
+  fs.mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
 export const commands = {
   getHosts,
   createHost,
@@ -460,4 +492,5 @@ export const commands = {
     return { hosts, items: hosts, total: hosts.length };
   },
   adminRebuildHost: rebuildHost,
+  pickHostDirectory,
 };

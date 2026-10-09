@@ -1,1 +1,0 @@
-import{t as e}from"./runtime-Df6wkC9G.js";var t=()=>`复制`,n=()=>`Copy`,r=((r={},i={})=>(i.locale??e())===`en`?n(r):t(r)),i=()=>`已复制`,a=()=>`Copied`,o=((t={},n={})=>(n.locale??e())===`en`?a(t):i(t));export{r as n,o as t};

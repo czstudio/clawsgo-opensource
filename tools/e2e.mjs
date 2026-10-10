@@ -12,6 +12,7 @@
  *   BASE=http://127.0.0.1:5181 node tools/e2e.mjs
  */
 import net from 'node:net';
+import { spawn } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -390,6 +391,23 @@ function decodeServerFrame(b) {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function main() {
+
+  /* ---------------- auto-start server ---------------- */
+  let serverProc;
+  if (process.env.E2E_NO_SERVE !== '1') {
+    const servePath = path.join(ROOT, 'server', 'serve.mjs');
+    if (fs.existsSync(servePath)) {
+      console.log(C.dim('  auto-starting server...'));
+      serverProc = spawn('node', [servePath], {
+        cwd: ROOT,
+        env: { ...process.env, NODE_OPTIONS: '' },
+        detached: true,
+        stdio: 'ignore',
+      });
+      serverProc.unref();
+      await sleep(3000);
+    }
+  }
   const t0 = Date.now();
   console.log(C.b('\nClawsGO 本地复刻 · 端到端验收测试'));
   console.log(C.dim(`  target = ${BASE}`));

@@ -1385,6 +1385,50 @@ function buildSeries(days, countAt) {
 /* 线上新版后台：工单删除 / 消息撤回 / 参与度与收入报表 / 角色           */
 /* ------------------------------------------------------------------ */
 
+
+async function adminCloseTicket(p, ctx) {
+  adminOnly(ctx);
+  const t = db$().tickets.find((x) => x.id === req(p, 'id'));
+  if (!t) notFound('工单');
+  t.status = 'closed';
+  t.closedAt = now();
+  t.updatedAt = t.closedAt;
+  save();
+  return { ok: true, id: t.id, status: t.status };
+}
+
+async function adminGetAnnouncements(p, ctx) {
+  adminOnly(ctx);
+  let rows = db$().announcements ?? [];
+  rows = [...rows].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  const items = paged(rows, p).map(announcement);
+  return { announcements: items, items, total: rows.length, limit: LIMIT(p), offset: OFFSET(p) };
+}
+
+async function adminCreateAnnouncement(p, ctx) {
+  adminOnly(ctx);
+  const row = {
+    id: uuid(),
+    title: req(p, 'title'),
+    body: p?.body ?? '',
+    active: p?.active ?? true,
+    createdAt: now(),
+    updatedAt: now(),
+  };
+  db$().announcements.push(row);
+  save();
+  return { announcement: announcement(row), ok: true };
+}
+
+async function adminDeleteAnnouncement(p, ctx) {
+  adminOnly(ctx);
+  const idx = db$().announcements.findIndex((x) => x.id === req(p, 'id'));
+  if (idx === -1) notFound('公告');
+  db$().announcements.splice(idx, 1);
+  save();
+  return { ok: true, id: p.id };
+}
+
 async function adminDeleteTicket(p, ctx) {
   const t = db$().tickets.find((x) => x.id === req(p, 'id'));
   if (!t) notFound('工单');
@@ -1561,6 +1605,10 @@ export const commands = {
   // 供后台直接复用的只读项
   adminGetPlans: async () => ({ plans: allPlanSpecs(), topupTiers: TOPUP_TIERS }),
   adminDeleteTicket,
+  adminCloseTicket,
+  adminGetAnnouncements,
+  adminCreateAnnouncement,
+  adminDeleteAnnouncement,
   adminRecallTicketMessage,
   adminGetEngagementReport,
   adminGetRevenueReport,

@@ -7,8 +7,13 @@ import { profile } from '../lib/shapes.mjs';
 
 /** requestId → {phoneNumber, code, expiresAt, attempts} */
 export const otpStore = new Map();
-/** token → {userId, createdAt} */
+/** token → {userId, createdAt, expiresAt}；持久化进 db.json（生产滚动重启不掉登录的对应语义） */
 export const tokens = new Map();
+try {
+  for (const [k, v] of Object.entries(db$().authTokens ?? {})) {
+    if (!v?.expiresAt || v.expiresAt > Date.now()) tokens.set(k, v);
+  }
+} catch { /* 首次启动 db 未加载时忽略 */ }
 /** 一次性登录码 */
 const oneTimeTokens = new Map();
 
@@ -35,6 +40,11 @@ const TOKEN_TTL = 30 * 864e5;
 export function issueToken(userId) {
   const token = 'cgt_' + rid(40);
   tokens.set(token, { userId, createdAt: now(), expiresAt: Date.now() + TOKEN_TTL });
+  try {
+    const db = db$();
+    db.authTokens = Object.fromEntries(tokens);
+    save({ immediate: true });
+  } catch { /* 持久化失败不影响登录 */ }
   return token;
 }
 

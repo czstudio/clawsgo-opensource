@@ -219,7 +219,17 @@ async function getActiveAnnouncements(p, ctx) {
   return { announcements, items: announcements, total: announcements.length };
 }
 
+async function getNotifications(p, ctx) {
+  const limit = Math.max(1, Math.min(100, Number(p?.limit) || 20));
+  const offset = Math.max(0, Number(p?.offset) || 0);
+  const rows = (db$().notifications ?? []).filter((n) => n.userId === ctx.user.id)
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  const items = rows.slice(offset, offset + limit);
+  return { notifications: items, items, total: rows.length, unread: rows.filter((n) => !n.read).length };
+}
+
 export const commands = {
+  getNotifications,
   getMyTickets,
   getTickets: getMyTickets,
   getTicket,

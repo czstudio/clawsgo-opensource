@@ -611,7 +611,17 @@ function decodeEntities(s) {
     .trim();
 }
 
+async function getActivities(p, ctx) {
+  const limit = Math.max(1, Math.min(100, Number(p?.limit) || 20));
+  const offset = Math.max(0, Number(p?.offset) || 0);
+  const rows = (db$().activities ?? []).filter((a) => a.userId === ctx.user.id)
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  const items = rows.slice(offset, offset + limit);
+  return { activities: items, items, total: rows.length };
+}
+
 export const commands = {
+  getActivities,
   getProfile,
   updateProfile,
   uploadAvatar,

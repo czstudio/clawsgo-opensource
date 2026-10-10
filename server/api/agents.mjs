@@ -126,9 +126,13 @@ function serialize(row) {
 }
 
 async function getSubagents(p, ctx) {
-  const s = scopeOf(p);
-  const rows = db$().subagents.filter((r) => inScope(r, s));
-  return { subagents: rows.map(subagentShape), total: rows.length };
+  try {
+    const s = scopeOf(p);
+    const rows = db$().subagents.filter((r) => inScope(r, s));
+    return { subagents: rows.map(subagentShape), total: rows.length };
+  } catch {
+    return { subagents: [], total: 0 };
+  }
 }
 
 async function createSubagent(p, ctx) {
@@ -244,9 +248,13 @@ function normalizeConfig(cfg = {}) {
 }
 
 async function getMcpServers(p, ctx) {
-  const s = scopeOf(p);
-  const rows = db$().mcpServers.filter((r) => inScope(r, s));
-  return { mcpServers: rows.map(mcpShape), total: rows.length };
+  try {
+    const s = scopeOf(p);
+    const rows = db$().mcpServers.filter((r) => inScope(r, s));
+    return { mcpServers: rows.map(mcpShape), total: rows.length };
+  } catch {
+    return { mcpServers: [], total: 0 };
+  }
 }
 
 async function upsertMcpServer(p, ctx) {

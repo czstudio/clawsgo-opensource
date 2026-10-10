@@ -465,7 +465,7 @@ export async function handleApiRequest(req, res, url) {
 
     // token 轮换：每次业务响应都下发一个新 token（对齐生产的 set-auth-token 行为）
     const headers = user ? { 'set-auth-token': rotateToken(req, user) } : {};
-    return sendJSON(res, { data: result ?? {} }, 200, headers);
+    return sendJSON(res, { data: result ?? {}, error: null }, 200, headers);
   } catch (e) {
     return fail(res, e);
   }

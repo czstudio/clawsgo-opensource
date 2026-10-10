@@ -8,14 +8,14 @@ ClawsGO 本地复刻 · 端到端验收测试[0m
 [1m▌ 1. 认证与会话[0m
   [32m✓[0m 发送验证码[90m  devCode=123456[0m
   [32m✓[0m 错误验证码被拒[90m  INVALID_OTP[0m
-  [32m✓[0m 验证码登录成功[90m  token=cgt_vja38s85…[0m
-  [32m✓[0m 登录返回 profile 且带 teamId[90m  teamId=180e9d45-150c-4cea-b7b8-1f5b409a928e[0m
+  [32m✓[0m 验证码登录成功[90m  token=cgt_pludde1u…[0m
+  [32m✓[0m 登录返回 profile 且带 teamId[90m  teamId=49b33a75-3daf-4dde-bcd9-6d3de0a58d5e[0m
   [32m✓[0m GET 会话探针[90m  name=演示用户[0m
   [32m✓[0m 无 token 访问业务命令返回 401[90m  status=401[0m
 
 [1m▌ 2. 资料、团队与当前团队不变量[0m
   [32m✓[0m getProfile → { profile }
-  [32m✓[0m 个人团队 id === userId（前端 useCurrentTeam 兜底依赖）[90m  180e9d45-150c-4cea-b7b8-1f5b409a928e[0m
+  [32m✓[0m 个人团队 id === userId（前端 useCurrentTeam 兜底依赖）[90m  49b33a75-3daf-4dde-bcd9-6d3de0a58d5e[0m
   [32m✓[0m getTeams → { teams }[90m  1 个团队[0m
   [32m✓[0m getTeams 返回项带 role 且存在 owner[90m  演示实验室:owner[0m
   [32m✓[0m getTeamMembers → { members }[90m  2 名成员[0m
@@ -29,12 +29,12 @@ ClawsGO 本地复刻 · 端到端验收测试[0m
 [1m▌ 4. 发消息 · SSE 流式 · 权限审批[0m
   [32m✓[0m SSE 立即下发 channel-ack[90m  running=0[0m
   [32m✓[0m sendMessage → { userMessage, assistantMessage }
-  [32m✓[0m 助手占位消息带 streamId（前端据此显示 streaming）[90m  stream_7nig83m79…[0m
+  [32m✓[0m 助手占位消息带 streamId（前端据此显示 streaming）[90m  stream_dpvhnzz1i…[0m
   [32m✓[0m 新会话由后端按 ensure 建档[90m  title=统计工作区 CSV 数据[0m
   [32m✓[0m SSE 推送 reasoning part
   [32m✓[0m SSE 推送 part-delta 增量[90m  "先看工作区现状（8 个文"[0m
   [32m✓[0m SSE 推送真实执行的 Glob 工具结果[90m  8 个文件[0m
-  [32m✓[0m 工具 part 带 durationMs[90m  259ms[0m
+  [32m✓[0m 工具 part 带 durationMs[90m  252ms[0m
   [32m✓[0m Bash 执行前请求权限审批[90m  Bash[0m
   [32m✓[0m 权限请求携带原始 input[90m  python scripts/humidity_expose.py --rh 8…[0m
   [32m✓[0m answerPermission(allow) 被后端接受
@@ -72,12 +72,12 @@ ClawsGO 本地复刻 · 端到端验收测试[0m
 
 [1m▌ 7. 文件变更推送（watchConversationFiles）[0m
   [32m✓[0m 文件通道建立（ready 帧）
-  [32m✓[0m 真实 fs.watch 推送 change 事件[90m  data/processed/backup/notes-renamed.md,data/notes-renamed.md,watcher.txt[0m
+  [32m✓[0m 真实 fs.watch 推送 change 事件[90m  watcher.txt[0m
   [32m✓[0m change 帧带 truncated 字段
 
 [1m▌ 8. 会话维护 · 分享 · 归档 · 搜索[0m
   [32m✓[0m updateConversation（改名 + 置顶）
-  [32m✓[0m shareConversation 生成公开链接[90m  /share/cyovu78ahapq[0m
+  [32m✓[0m shareConversation 生成公开链接[90m  /share/etr1fkz3qdi0[0m
   [32m✓[0m getSharedConversation（免登录命令）
   [32m✓[0m getSharedMessages[90m  2 条[0m
   [32m✓[0m 关闭分享
@@ -100,10 +100,10 @@ ClawsGO 本地复刻 · 端到端验收测试[0m
   [32m✓[0m getHosts → { hosts }[90m  cloud-default:running, lab-a100:offline[0m
   [32m✓[0m getHostStatus 返回实时状态[90m  running online=true[0m
   [32m✓[0m getHostEnvironment → { environment }[90m  python=3.13.12 pkg=6[0m
-  [32m✓[0m getHostStorage → { storage }[90m  57.5/200 GB[0m
+  [32m✓[0m getHostStorage → { storage }[90m  32.4/200 GB[0m
   [32m✓[0m getHostDirectories 返回目录树[90m  datasets, notebooks, workspace[0m
-  [32m✓[0m createHostDirectory 真实建目录[90m  /home/clawsgo/e2e-mv1pszsq[0m
-  [32m✓[0m 新建目录出现在目录树[90m  datasets, e2e-mv1pszsq, notebooks, workspace[0m
+  [32m✓[0m createHostDirectory 真实建目录[90m  /home/clawsgo/e2e-mv1rtojg[0m
+  [32m✓[0m 新建目录出现在目录树[90m  datasets, e2e-mv1rtojg, notebooks, workspace[0m
   [32m✓[0m createHostDirectory 幂等（重名不报 409）
   [32m✓[0m createHostDirectory 拦截路径越界[90m  BAD_REQUEST[0m
   [32m✓[0m createHostDirectory 拦截深层越界[90m  BAD_REQUEST[0m
@@ -122,7 +122,7 @@ ClawsGO 本地复刻 · 端到端验收测试[0m
   [32m✓[0m getPlans 返回全部套餐与充值档[90m  free:¥0 plus:¥9.9 pro:¥29.9 ultra:¥99.9 team:¥299.9 enterprise:¥999[0m
   [32m✓[0m 年付 6 折（pro 年付 = ¥215.28）[90m  21528 分[0m
   [32m✓[0m quoteUpgrade 抵扣试算[90m  list=9990 proration=0 due=9990[0m
-  [32m✓[0m createPaymentOrder → { order } 带 payUrl[90m  CGMV1PT3D12AND[0m
+  [32m✓[0m createPaymentOrder → { order } 带 payUrl[90m  CGMV1RTS5JCJZ6[0m
   [32m✓[0m 充值档赠送到位（¥50 档 +1000bp）[90m  credit=5000000 bonus=500000[0m
   [32m✓[0m payUrl 指向可打开的收银台页面
   [32m✓[0m syncPaymentOrder 轮询到已支付[90m  status=paid[0m
@@ -136,7 +136,7 @@ ClawsGO 本地复刻 · 端到端验收测试[0m
   [32m✓[0m getInvoices → { invoices }
   [32m✓[0m redeemCode 演示码真实兑换[90m  +2500 → 512820[0m
   [32m✓[0m getMyInviteCodes 返回邀请码[90m  1 个[0m
-  [32m✓[0m createInviteCode 新建邀请码[90m  CGQ9TRMO[0m
+  [32m✓[0m createInviteCode 新建邀请码[90m  CGYIXXIQ[0m
 
 [1m▌ 12. 工单（含 multipart 附件）与公告[0m
   [32m✓[0m createTicket → { ticket }[90m  #1003[0m
@@ -144,7 +144,7 @@ ClawsGO 本地复刻 · 端到端验收测试[0m
   [32m✓[0m getMyTickets → { tickets, messages }[90m  3 工单[0m
   [32m✓[0m getTicket → { ticket, messages, truncated }
   [32m✓[0m uploadTicketAttachment（multipart）返回 attachment.url[90m  e2e-log.txt[0m
-  [32m✓[0m 附件 URL 为绝对地址且带合法预签名参数（前端 new URL 解析依赖）[90m  http://localhost:5181/api/ticketAttachment?attachmentId=9worg5vnzbsih0…[0m
+  [32m✓[0m 附件 URL 为绝对地址且带合法预签名参数（前端 new URL 解析依赖）[90m  http://localhost:5181/api/ticketAttachment?attachmentId=cmqccsucybljtl…[0m
   [32m✓[0m 附件可下载
   [32m✓[0m getTicketUnreadCount → { count }[90m  count=1[0m
   [32m✓[0m markTicketSeen
@@ -155,7 +155,7 @@ ClawsGO 本地复刻 · 端到端验收测试[0m
   [32m✓[0m 用量按模型聚合[90m  clawsgo-1.0-lithium:20[0m
   [32m✓[0m getOverview 返回后台总览[90m  users=2 revenue=¥0[0m
   [32m✓[0m getDevices → { devices }
-  [32m✓[0m registerDevice 返回 device + token[90m  ddcc781e[0m
+  [32m✓[0m registerDevice 返回 device + token[90m  1a24606c[0m
   [32m✓[0m revokeDevice
   [32m✓[0m createProject[90m  E2E 项目[0m
   [32m✓[0m getProject
@@ -170,7 +170,7 @@ ClawsGO 本地复刻 · 端到端验收测试[0m
   [32m✓[0m deleteProject
 
 [1m▌ 14. 终端（WebSocket 真实执行命令）[0m
-  [32m✓[0m createConversationTerminal → { terminal, ticket }[90m  6d0d47f1[0m
+  [32m✓[0m createConversationTerminal → { terminal, ticket }[90m  77303915[0m
   [32m✓[0m 终端 WebSocket 握手 + 欢迎信息
   [32m✓[0m 终端执行 help 返回命令说明
   [32m✓[0m 终端 ls 列出真实工作区文件
@@ -205,7 +205,7 @@ ClawsGO 本地复刻 · 端到端验收测试[0m
   [32m✓[0m adminRefundPaymentOrder 退款并回收额度[90m  回收 5500 额度[0m
   [32m✓[0m adminTopupCredits 手动加额度[90m  balance=507820[0m
   [32m✓[0m adminGrantPlan 直接授予套餐[90m  到期 2027-01-08[0m
-  [32m✓[0m adminCreateRedeemCodes 生成兑换码[90m  CG-ny2d-ko6q-5790[0m
+  [32m✓[0m adminCreateRedeemCodes 生成兑换码[90m  CG-5mz7-p34c-awdd[0m
   [32m✓[0m adminGetRedeemCodes 可查回
   [32m✓[0m adminDisableRedeemCode 作废
   [32m✓[0m 兑换码真实兑换到账[90m  +500 → 508320[0m
@@ -218,7 +218,7 @@ ClawsGO 本地复刻 · 端到端验收测试[0m
   [32m✓[0m adminGetInviteOverview[90m  codes=2[0m
   [32m✓[0m adminGetInviteCohorts[90m  8 个 cohort[0m
   [32m✓[0m adminGetInviteRiskReport[90m  0 条风险标记[0m
-  [32m✓[0m adminRunMigration 启动迁移[90m  mig-2026-10-10T01-28-10-036Z[0m
+  [32m✓[0m adminRunMigration 启动迁移[90m  mig-2026-10-10T02-24-41-790Z[0m
   [32m✓[0m 迁移跑完（4 步）[90m  progress=1 done=4/4[0m
   [32m✓[0m adminGetMigrationReport 出报告[90m  users=2[0m
   [32m✓[0m adminGetCloudHosts[90m  1 台[0m
@@ -235,14 +235,14 @@ ClawsGO 本地复刻 · 端到端验收测试[0m
   [32m✓[0m adminSettlePromoter 登记打款[90m  2026-09 ¥1.00[0m
   [32m✓[0m 打款写入结算流水
   [32m✓[0m 打款后应结金额下降[90m  0 → 0[0m
-  [32m✓[0m adminCreateFileLink → { link:{url} }（少这层前端会拼出 undefined）[90m  /api/downloadConversationFile?token=bgcb7fnvbzypi1nni4y6zmzmfm4v[0m
-  [32m✓[0m 直链 url 已带 ?（前端会再拼 &download=1）[90m  /api/downloadConversationFile?token=bgcb7fnvbzypi1nni4y6zmzmfm4v[0m
+  [32m✓[0m adminCreateFileLink → { link:{url} }（少这层前端会拼出 undefined）[90m  /api/downloadConversationFile?token=85y8lubp9dln9s1g442yemfygt9t[0m
+  [32m✓[0m 直链 url 已带 ?（前端会再拼 &download=1）[90m  /api/downloadConversationFile?token=85y8lubp9dln9s1g442yemfygt9t[0m
   [32m✓[0m 签名直链免登录可读（img/iframe 场景）[90m  status=200 131B[0m
   [32m✓[0m 直链加 &download=1 返回附件头[90m  attachment; filename="README.md"[0m
   [32m✓[0m 无效 token 直链被拒[90m  status=404[0m
   [32m✓[0m adminDownloadConversationFile 返回二进制 + disposition[90m  235B[0m
   [32m✓[0m adminCreateOfficeSession → { session:{ serverUrl, config } }[90m  /office-docs[0m
-  [32m✓[0m config 满足编辑器组件解构（document.key + editorConfig.mode）[90m  word · edit · key=mnslp8-6j[0m
+  [32m✓[0m config 满足编辑器组件解构（document.key + editorConfig.mode）[90m  word · edit · key=1wnp68n-6j[0m
   [32m✓[0m document.url 指向可下载的签名直链
   [32m✓[0m 本地 DocsAPI 替身可加载且导出 DocEditor[90m  5698B[0m
   [32m✓[0m createFileLink 也是 { link:{url} }（同一份适配器）
@@ -252,7 +252,7 @@ ClawsGO 本地复刻 · 端到端验收测试[0m
 [1m▌ 16c. 卡包（发卡 / 领取 / 使用 / 作废）[0m
   [32m✓[0m adminSearchCardRecipients → { users, missing }[90m  命中 1 · 缺失 1[0m
   [32m✓[0m 找不到的标识进 missing（前端用 Intl.ListFormat 提示）
-  [32m✓[0m adminIssueCards → { cards, count }[90m  卡号 FQR3-H2YN-9Q89-YSHL[0m
+  [32m✓[0m adminIssueCards → { cards, count }[90m  卡号 K5TC-5FSE-KTEM-8ZTB[0m
   [32m✓[0m 卡形状含前端直接读的字段[90m  week/active[0m
   [32m✓[0m adminGetCardReport → { total, byStatus, byType }[90m  共 2 张 · active 2[0m
   [32m✓[0m 报表含 issued7d / issued30d / used30d / expiringSoon
@@ -277,20 +277,20 @@ ClawsGO 本地复刻 · 端到端验收测试[0m
   [32m✓[0m generateImage → { images, count }
   [32m✓[0m image 形状齐全（前端 onSuccess 直接塞缓存）[90m  512×288[0m
   [32m✓[0m 16:9 真的算出 16:9 尺寸[90m  512×288[0m
-  [32m✓[0m 生成的 PNG 可下载[90m  129711B[0m
+  [32m✓[0m 生成的 PNG 可下载[90m  104494B[0m
   [32m✓[0m 是合法 PNG（魔数 89 50 4E 47）
   [32m✓[0m PNG 结构完整（IHDR / IDAT / IEND）
   [32m✓[0m IHDR 里的宽高与接口返回一致[90m  512×288[0m
   [32m✓[0m 生成图片真实扣额度[90m  536320 → 336320[0m
-  [32m✓[0m 矢量图返回可渲染的 SVG 源码[90m  640B[0m
+  [32m✓[0m 矢量图返回可渲染的 SVG 源码[90m  639B[0m
   [32m✓[0m retryImage → { image }
   [32m✓[0m updateImage 把编辑器里的 SVG 写回
-  [32m✓[0m downloadImage → { url, name }[90m  /__images/c4a3e0a0-1a85-4ac1-94b9-8ea46985b7ec.png[0m
+  [32m✓[0m downloadImage → { url, name }[90m  /__images/23b46b24-a94c-4173-bc1c-f2706353927e.png[0m
   [32m✓[0m deleteImage → { ok, id }
   [32m✓[0m 删除后列表不再包含它[90m  剩 2 张[0m
 
 [1m▌ 16e. 子智能体与 MCP 服务器[0m
-  [32m✓[0m createProject（给子智能体当作用域）[90m  440b8cec[0m
+  [32m✓[0m createProject（给子智能体当作用域）[90m  363dc18f[0m
   [32m✓[0m getSubagents → { subagents, total }[90m  0 个[0m
   [32m✓[0m createSubagent → { subagent, subagents }[90m  subagent.md[0m
   [32m✓[0m content 是 frontmatter + 正文的 Markdown（编辑器直接展示）
@@ -313,7 +313,7 @@ ClawsGO 本地复刻 · 端到端验收测试[0m
   [32m✓[0m getProjectGitStatus → { changes, projectId }[90m  0 处改动[0m
   [32m✓[0m getHostProjects → { projects, total }[90m  3 个项目[0m
   [32m✓[0m getProjectTerminals → { terminals, total }[90m  0 个[0m
-  [32m✓[0m createProjectTerminal → { terminal, ticket }[90m  ticket=cjt58ah2…[0m
+  [32m✓[0m createProjectTerminal → { terminal, ticket }[90m  ticket=8u13vu2b…[0m
   [32m✓[0m 终端形状含前端解构的字段
   [32m✓[0m 项目终端 WebSocket 握手成功（票据表与会话终端共用）[90m  [1mClawsGO 本地复刻终端[0m
 [0m
@@ -323,7 +323,7 @@ ClawsGO 本地复刻 · 端到端验收测试[0m
   [32m✓[0m reorderProjectTerminal → { ok, order }
   [32m✓[0m closeProjectTerminal → { ok }
   [32m✓[0m 关闭后不再出现在列表里[90m  0 个[0m
-  [32m✓[0m createProjectFileLink 也是 { link:{url} }[90m  /api/downloadConversationFile?token=keyrl8mm71drlpn0bud1qtv88f8k[0m
+  [32m✓[0m createProjectFileLink 也是 { link:{url} }[90m  /api/downloadConversationFile?token=h553jhr1ops1e34tj1ui9f1lexe6[0m
   [32m✓[0m 直链 url 带 ?（前端会再拼 &download=1）
   [32m✓[0m createProjectOfficeSession 也是 ONLYOFFICE 会话
   [32m✓[0m downloadProjectFile 返回真实文件[90m  235B[0m
@@ -363,7 +363,7 @@ ClawsGO 本地复刻 · 端到端验收测试[0m
   [32m✓[0m 角色可还原（不污染演示数据）[90m  user[0m
 
 [1m▌ 17. 命令注册表覆盖度[0m
-  [32m✓[0m 契约中的命令都已实现（或在允许的例外清单内）[90m  已实现 266 条[0m
+  [32m✓[0m 契约中的命令都已实现（或在允许的例外清单内）[90m  已实现 270 条[0m
 
 [1m▌ 18. 静态托管与 SPA 外壳[0m
   [32m✓[0m 应用外壳 index.html 可访问[90m  7987B[0m
@@ -375,7 +375,7 @@ ClawsGO 本地复刻 · 端到端验收测试[0m
   [32m✓[0m 未注册命令返回结构化错误（不是 500 崩溃）[90m  501 NOT_IMPLEMENTED[0m
 
 [1m════════════════════════════════════════════[0m
-  通过 [32m319[0m   失败 [90m0[0m   用时 25.4s
+  通过 [32m319[0m   失败 [90m0[0m   用时 27.4s
 [1m════════════════════════════════════════════[0m
 
 [90m  报告已写入 docs/e2e-report.json

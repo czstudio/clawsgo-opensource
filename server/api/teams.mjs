@@ -92,7 +92,8 @@ async function setMemberLimit(p, ctx) {
 /* ------------------------------------------------------------------ */
 
 async function getTeamMembers(p, ctx) {
-  const t = ownTeam(req(p, 'teamId'), ctx);
+  const teamId = p?.teamId ?? ctx.teamId;
+  const t = ownTeam(teamId, ctx);
   const rows = db$().teamMembers.filter((m) => m.teamId === t.id).map(teamMember);
   return { members: rows, items: rows, total: rows.length };
 }

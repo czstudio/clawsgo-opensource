@@ -500,7 +500,17 @@ async function getPaymentDocuments(p, ctx) {
   return { documents, order: paymentOrder(order), invoices: invoices.map(invoice), total: documents.length };
 }
 
+async function getLedger(p, ctx) {
+  const limit = Math.max(1, Math.min(100, Number(p?.limit) || 20));
+  const offset = Math.max(0, Number(p?.offset) || 0);
+  const team = db$().teams.find((t) => t.id === ctx.teamId);
+  const rows = (team?.ledger ?? []).sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  const items = rows.slice(offset, offset + limit);
+  return { entries: items, items, total: rows.length, balance: team?.credits ?? 0 };
+}
+
 export const commands = {
+  getLedger,
   getSubscription,
   getPlans,
   quoteUpgrade,
@@ -513,6 +523,7 @@ export const commands = {
   deleteInvoice,
   redeemCode: redeemCodeCmd,
   getMyInviteCodes,
+  getInviteCodes: getMyInviteCodes,
   createInviteCode,
   renameInviteCode,
   getPaymentDocuments,

@@ -146,13 +146,20 @@ async function cleanHostCache(p, ctx) {
 
 async function getHostStatus(p, ctx) {
   const h = ownHost(req(p, 'hostId'), ctx);
+  const running = db$()
+    .conversations.filter((c) => c.hostId === h.id && c.streamId)
+    .map((c) => ({ conversationId: c.id, title: c.title ?? '', userId: c.userId, startedAt: c.streamStartedAt ?? c.updatedAt ?? c.createdAt }));
+  // 新版前端消费 running 数组（hosts chunk @18001/@54641/@60905：.running.length 与
+  // .running.map(x=>x.conversationId)）与 activity 列表；runningConversations 为旧版兼容保留
   return {
     ...host(h),
     hostId: h.id,
     online: h.status === 'running',
     uptimeSeconds: Math.round((Date.now() - Date.parse(h.createdAt)) / 1000),
     loadAvg: [0.42, 0.38, 0.31],
-    runningConversations: db$().conversations.filter((c) => c.hostId === h.id && c.streamId).length,
+    running,
+    runningConversations: running.length,
+    activity: [],
   };
 }
 

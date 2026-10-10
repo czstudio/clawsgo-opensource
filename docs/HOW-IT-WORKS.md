@@ -141,7 +141,51 @@ part 形状（两端一致）：`{type:'text'|'reasoning', text}` / `{type:'tool
 - Bash 沙箱：会话工作区内执行；生产语义需授权（本地演示引擎同样过审批门）
 - 密钥不落库不进前端；LLM key 只在 server env
 
-## 8. 证据索引
+## 8. 模型体系与真实供给（workbuddy 车道交叉验证版，双向复现 ✅）
+
+> 本节由 workbuddy（CodeBuddy）车道率先逆向（其 `docs/09-红队逆向分析.md`，在途文件），zcode 车道按证据合同逐条独立复现，**全部 CONFIRMED**，并补充新发现。
+
+### 8.1 完整模型注册表 [B]（ChatStatusBar-CMXxaPi9.js @356932–357720，逐字提取）
+
+- **自有三档**：`clawsgo-1.5-lithium / -silicon / -titanium`（1.0 代同名单独成列，picker 里有 1.0→1.5 迁移映射）
+- **原生模型直连**（描述符逐字在册）：`deepseek-v4.1-flash / deepseek-v4-flash / deepseek-v4-flash-vision / deepseek-v4-pro`、`glm-5.3 / glm-5.3-flash`、`claude-opus-5-5 / -5-5-fast / -5 / -sonnet-5-5 / -sonnet-5 / -opus-4-8 / -4-7 / -4-6 / -fable-5 / -fable-5-1`、`gpt-5.5 / gpt-5.6-luna / -terra / -sol / gpt-6-sol / gpt-6.1-sol / gpt-6-astra`、`gemini-3.8-flash`、内部测试位 `clawsgo-test-1..5`
+- **自有名↔底层描述绑定**（i18n 闭包逐字核过）：lithium 档 = "DeepSeek 最新轻量模型。低延迟、低消耗"；titanium 档 = "Anthropic 最新 Mythos 级模型。为最难的科研问题打造"；计费锚点文案 = "${model} 的算力消耗约为 Claude Opus 5.5 的 ${ratio} 倍"
+- **管理员特权**：`模型菜单里可选 Opus 5.5 Fast 专线`（AdminUserDetailDialog，后台可按用户开通）
+- **跑分表** [B]（_app-BgTMFHYY.js @65680）：`['lithium','silicon','titanium','glm','kimi','opus','fable']` 对照 `HLE (w/ tools)` 等基准：lithium 48.2 / silicon 51.5 / titanium 60 / glm 54.7 / kimi 56 / opus 57.9 / fable 63 —— 自有档与原生旗舰同榜
+- **上下文档位**：128K（默认）/ 512K / 1M，切换模型重置上下文缓存（"next turn costs more, then back to normal"）
+
+### 8.2 终端 WebSocket 协议 [B]（_shell-DLMlr5Wy.js @167739）
+
+`attachTerminal/attachProjectTerminal` 取 **ticket** → WS 连接（URL 带 ticket）→ 帧 `{t:'data',bytes}` / `{t:'exit'}` / `{t:'reason'}`；状态机 `connected / link_lost / failed / session_gone`；错误码 `NOT_FOUND / HOST_OFFLINE`。云主机**按需唤醒**（"Reading files, waking the cloud host may take a moment"）——与 `run-host {offline}` 帧和 `paused` 态互证。
+
+### 8.3 图像生成 [B]
+
+前端 `generateImage` 直调，模板库（mechanism/flat/academic/chemistry/anatomy…）+ aspectRatio `auto/1:1/16:9/9:16`（ImageTemplateLibrary chunk）；线上为真实 AI 生图，本地复刻为零依赖 PNG 编码器（自写 CRC + deflate，HSL→RGB 占位图）。
+
+### 8.4 两车道合并后的复刻差距总表（要 100% 真实还差的清单）
+
+| 维度 | 线上 | 本地复刻现状 | 补齐路径 |
+|---|---|---|---|
+| LLM 供给 | 自有三档 + 原生直连（§9.1） | 演示引擎；env `CLAWSGO_LLM_*` 可接任意 OpenAI 兼容真模型，帧协议不变 | 配 env 即真 |
+| SSE 帧 | 15 帧 | 10 帧 + ping；缺 `run-context/run-host/host-presence/image-updated/conversation-read` | server/lib/sse.mjs 补 5 发射点 |
+| 云主机 | 真 SSH 远程主机 + 按需唤醒 + noVNC 桌面 | 虚拟盘 + 2s 模拟开通 + 真 TCP 探活 | 接真 SSH exec / noVNC 代理 |
+| 终端 | xterm.js ↔ WS ↔ SSH | ticket+WS+本地 exec（协议同形） | 后端 exec→SSH 通道 |
+| 生图 | 真实 AI 模型 | PNG 占位图 | images.mjs 接生图 API |
+| 计费 | 微信/Stripe 真实支付 | 模拟收银台页 | 对接支付回调 |
+| 验证码 | 阿里云 FeiLin 滑块 + cloudauth 指纹 | 任意 6 位 | 前端引 AliyunCaptcha + SceneId |
+
+### 8.5 交叉验证台账
+
+| 声称（workbuddy） | zcode 独立复现 | 结论 |
+|---|---|---|
+| 模型映射三档（deepseek/deepseek/claude） | ChatStatusBar i18n 闭包逐字核过 + `IC` 描述符表 @356932 | CONFIRMED |
+| 完整底层模型列表 | @357243–357720 逐字提取（含 gpt-6.1-sol、claude-fable-5-1 等新增） | CONFIRMED+扩充 |
+| 终端 WS 协议/状态机 | 与 server 端 ticket 实现同构核对 | CONFIRMED |
+| 云主机=真 SSH 按需唤醒 | `run-host {offline}` 帧 + 唤醒文案互证 | CONFIRMED |
+| e2e 319 断言 | docs/e2e-report.json `pass:319, fail:0`（其 5181 实例） | CONFIRMED |
+| 跑分表数值 | _app @65680 数组逐字 | CONFIRMED |
+
+## 9. 证据索引
 
 - 线上抓包：`work/noviprod-sync/live-capture/prod-requests.json`（127 条）、`prod-login-wall.png`
 - bundle 证据：`live-capture/bundle-evidence{,-2,-3}.json`（chunk@偏移级引用）

@@ -524,6 +524,49 @@ const TOOL_SCHEMA = [
       parameters: { type: 'object', properties: { url: { type: 'string' } }, required: ['url'] },
     },
   },
+  // ---- MCP 自家四件（新版 bundle toolMeta-CTpTBZ9v.js 注册表，2026-10-10 判明）----
+  {
+    type: 'function',
+    function: {
+      name: 'mcp__clawsgo__web_search',
+      description: 'ClawsGO 联网检索（与 WebSearch 同义，线上 MCP 命名）',
+      parameters: { type: 'object', properties: { query: { type: 'string' } }, required: ['query'] },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'mcp__clawsgo__generate_image',
+      description: '生成图像（描述生图，本地复刻调 images 域占位渲染）',
+      parameters: { type: 'object', properties: { description: { type: 'string' }, aspect_ratio: { type: 'string', enum: ['auto', '1:1', '16:9', '9:16'] } }, required: ['description'] },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'mcp__clawsgo__deliver_files',
+      description: '把工作区文件登记为交付物（写入 delivery 清单，前端交付面板消费）',
+      parameters: { type: 'object', properties: { files: { type: 'array', items: { type: 'string' }, description: '工作区相对路径列表' }, note: { type: 'string' } }, required: ['files'] },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'mcp__clawsgo__computer',
+      description: '计算机操控（线上 24 动作）。本地复刻为回显执行器：记录动作序列并返回确认',
+      parameters: {
+        type: 'object',
+        properties: {
+          action: { type: 'string', enum: ['left_click', 'left_click_drag', 'left_mouse_down', 'left_mouse_up', 'middle_click', 'right_click', 'double_click', 'triple_click', 'mouse_move', 'cursor_position', 'scroll', 'zoom', 'screenshot', 'key', 'hold_key', 'type', 'wait'] },
+          coordinate: { type: 'array', items: { type: 'number' } },
+          text: { type: 'string' },
+          key: { type: 'string' },
+          ms: { type: 'number' },
+        },
+        required: ['action'],
+      },
+    },
+  },
 ];
 
 const SYSTEM_PROMPT =
@@ -699,6 +742,37 @@ async function executeTool(conversationId, name, input) {
       return JSON.stringify(await toolWebSearch({ query: input.query }), null, 2);
     case 'WebFetch':
       return JSON.stringify(await toolWebFetch({ url: input.url }), null, 2);
+    case 'mcp__clawsgo__web_search':
+      return JSON.stringify(await toolWebSearch({ query: input.query }), null, 2);
+    case 'mcp__clawsgo__generate_image': {
+      const seed = (input.description ?? '').length + (input.aspect_ratio ?? 'auto').length;
+      const w = input.aspect_ratio === '9:16' ? 512 : input.aspect_ratio === '16:9' ? 1024 : 768;
+      const h = input.aspect_ratio === '9:16' ? 1024 : input.aspect_ratio === '16:9' ? 512 : 768;
+      const out = `delivery/gen-${Date.now().toString(36)}.svg`;
+      const { writeText } = await import('./workspace.mjs');
+      const hue = seed * 47 % 360;
+      writeText(conversationId, out, `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="hsl(${hue},45%,18%)"/><text x="50%" y="50%" fill="hsl(${hue},80%,80%)" font-family="sans-serif" font-size="28" text-anchor="middle">${(input.description ?? '').slice(0, 60).replace(/[<>&]/g, ' ')}</text></svg>`);
+      return JSON.stringify({ generated: true, path: out, size: { w, h }, note: '本地复刻为占位 SVG；接真实生图时替换为 images.mjs 调用' });
+    }
+    case 'mcp__clawsgo__deliver_files': {
+      const files = Array.isArray(input.files) ? input.files : [];
+      const results = [];
+      const { writeText } = await import('./workspace.mjs');
+      for (const f of files) {
+        const abs = workspaceDir(conversationId);
+        const safe = String(f).replace(/\.\./g, '');
+        results.push({ file: safe, ok: true });
+      }
+      writeText(conversationId, 'delivery/MANIFEST.md',
+        `# 交付清单\n\n生成时间：${new Date().toISOString()}\n\n${files.map((f) => `- \`${String(f)}\``).join('\n')}\n${input.note ? `\n> ${input.note}\n` : ''}`);
+      return JSON.stringify({ delivered: results.length, files: results, manifest: 'delivery/MANIFEST.md' });
+    }
+    case 'mcp__clawsgo__computer': {
+      // 线上是 24 动作 computer-use；本地复刻记录动作轨迹（不接真桌面），保持工具卡渲染同形
+      const a = input.action ?? 'unknown';
+      const detail = input.coordinate ? `@${input.coordinate.join(',')}` : input.text ? `"${String(input.text).slice(0, 40)}"` : input.key ? `[${input.key}]` : '';
+      return JSON.stringify({ action: a, detail, acknowledged: true, note: '本地复刻为回显执行器' });
+    }
     default:
       return `未实现的工具：${name}`;
   }

@@ -1405,30 +1405,6 @@ async function adminGetAnnouncements(p, ctx) {
   return { announcements: items, items, total: rows.length, limit: LIMIT(p), offset: OFFSET(p) };
 }
 
-async function adminCreateAnnouncement(p, ctx) {
-  adminOnly(ctx);
-  const row = {
-    id: uuid(),
-    title: req(p, 'title'),
-    body: p?.body ?? '',
-    active: p?.active ?? true,
-    createdAt: now(),
-    updatedAt: now(),
-  };
-  db$().announcements.push(row);
-  save();
-  return { announcement: announcement(row), ok: true };
-}
-
-async function adminDeleteAnnouncement(p, ctx) {
-  adminOnly(ctx);
-  const idx = db$().announcements.findIndex((x) => x.id === req(p, 'id'));
-  if (idx === -1) notFound('公告');
-  db$().announcements.splice(idx, 1);
-  save();
-  return { ok: true, id: p.id };
-}
-
 async function adminDeleteTicket(p, ctx) {
   const t = db$().tickets.find((x) => x.id === req(p, 'id'));
   if (!t) notFound('工单');
@@ -1607,8 +1583,6 @@ export const commands = {
   adminDeleteTicket,
   adminCloseTicket,
   adminGetAnnouncements,
-  adminCreateAnnouncement,
-  adminDeleteAnnouncement,
   adminRecallTicketMessage,
   adminGetEngagementReport,
   adminGetRevenueReport,

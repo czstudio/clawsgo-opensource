@@ -63,20 +63,34 @@ export const commandNames = () => Object.keys(COMMANDS).sort();
 /* ------------------------------------------------------------------ */
 
 const CORS = {
-  'Access-Control-Allow-Origin': '*',
+  // strix 扫描发现（2026-10-10）：通配符 + 暴露 Authorization 会放大钓鱼面。
+  // 收紧为同源回显（无 Origin 头时不设 ACAO；有则只回显自身 Origin，且不再暴露 authorization）。
   'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Requested-With',
-  'Access-Control-Expose-Headers':
-    'set-auth-token,content-disposition,content-type,content-length,authorization',
+  'Access-Control-Expose-Headers': 'set-auth-token,content-disposition,content-type,content-length',
 };
 
+function corsHeaders(req) {
+  const origin = req.headers.origin;
+  if (!origin) return { ...CORS, Vary: 'Origin' };
+  const host = req.headers.host || '';
+  try {
+    const o = new URL(origin);
+    // 只允许本机开发端口跨源（site:6180 → app:6181 的本地开发形态）
+    const isLocalDev = /^(localhost|127\.0\.0\.1)$/.test(o.hostname) && /^[0-9]+$/.test(o.port);
+    if (isLocalDev || o.host === host) return { ...CORS, 'Access-Control-Allow-Origin': origin, Vary: 'Origin' };
+  } catch { /* 非法 Origin */ }
+  return { Vary: 'Origin' };
+}
+
 export function sendJSON(res, payload, status = 200, extra = {}) {
+  const cors = corsHeaders(res.req || null);
   const buf = Buffer.from(JSON.stringify(payload));
   res.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',
     'Content-Length': buf.length,
     'Cache-Control': 'no-store',
-    ...CORS,
+    ...cors,
     ...extra,
   });
   res.end(buf);
@@ -272,7 +286,7 @@ async function handleWatchConversationFiles(req, res, user, ctx) {
     'Cache-Control': 'no-cache, no-transform',
     Connection: 'keep-alive',
     'X-Accel-Buffering': 'no',
-    ...CORS,
+    ...corsHeaders(res.req || req),
   });
   res.write(': connected\n\n');
   res.write(`data: ${JSON.stringify({ type: 'ready', conversationId })}\n\n`);
@@ -370,7 +384,7 @@ export async function handleFilesGateway(req, res, url, { user, ctx }) {
  */
 export async function handleApiRequest(req, res, url) {
   if (req.method === 'OPTIONS') {
-    res.writeHead(204, CORS);
+    res.writeHead(204, corsHeaders(req));
     return res.end();
   }
 

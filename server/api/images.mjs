@@ -24,6 +24,7 @@ import zlib from 'node:zlib';
 import { db$, uuid, now, save, paginate, DATA_DIR } from '../lib/db.mjs';
 import { req, need, notFound, badRequest } from '../lib/errors.mjs';
 import { CREDITS_IMAGE } from '../lib/plans.mjs';
+import { hub } from '../lib/sse.mjs';
 
 export const IMAGES_DIR = path.join(DATA_DIR, 'images');
 
@@ -307,6 +308,7 @@ async function generateImage(p, ctx) {
   const team = db.teams.find((t) => t.id === teamId);
   if (team) team.creditBalance = (team.creditBalance ?? 0) - CREDITS_IMAGE * created.length;
   save();
+  hub.imageUpdated(teamId, { count: created.length, imageIds: created.map((x) => x.id) });
   return { images: created.map(imageShape), count: created.length };
 }
 
@@ -324,6 +326,7 @@ async function retryImage(p, ctx) {
     writeRaster(row);
   }
   save();
+  hub.imageUpdated(row.teamId, { count: 1, imageIds: [row.id], retry: true });
   return { image: imageShape(row) };
 }
 

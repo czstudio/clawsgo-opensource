@@ -5,10 +5,10 @@
 
 对 `https://clawsgo.cn`（营销站）、`https://app.clawsgo.cn`（应用端）与 `https://api.clawsgo.cn`（API）的**完整还原**：
 
-- **前端**：全量产物，像素级一致，动画一并还原（营销站 5 页 + 应用端 924 个产物文件）
-- **后端**：**可真实运行的复刻服务**，211 条命令全部实现，零第三方依赖
+- **前端**：全量产物，像素级一致，动画一并还原（营销站 19 页 + 应用端 1098 个产物文件）
+- **后端**：**可真实运行的复刻服务**，266 条命令全部实现，零第三方依赖
 - **契约**：从生产 bundle 的调用点反推出的完整 API 形状，逐条落到代码
-- **验收**：219 项端到端断言，覆盖到真实文件系统、真实 WebSocket、真实 SSE 流
+- **验收**：319 项端到端断言，覆盖到真实文件系统、真实 WebSocket、真实 SSE 流
 
 > 这份仓库解决一件事：把线上跑着的东西，变成你本地能读、能改、能重跑、能验证的代码和文档。
 
@@ -22,7 +22,7 @@ node server/serve.mjs
 
 | 地址 | 内容 |
 |---|---|
-| http://localhost:5180 | 营销站（首页 / 用户协议 / 隐私政策 / 使用政策 / 付费条款） |
+| http://localhost:5180 | 营销站（首页 / 下载 / 推广条款 / 文档中心 / FAQ 等 19 页） |
 | http://localhost:5181 | Web 应用（登录页 → 对话工作区 → 文件 → 终端 → 后台） |
 
 登录：**手机号 `138 0000 0000`，验证码任意 6 位，密码 `clawsgo2026`**
@@ -39,11 +39,11 @@ PORT_SITE=6180 PORT_APP=6181 node server/serve.mjs
 ### 验收测试
 
 ```bash
-node tools/e2e.mjs            # 219 项断言，约 25 秒
+node tools/e2e.mjs            # 319 项断言，约 25 秒
 node tools/glob.test.mjs      # glob→regex 回归测试
 ```
 
-跑完会打印 `通过 219   失败 0`，并把机器可读报告写到 `docs/e2e-report.json`、完整日志写到 `docs/e2e-run.log`。
+跑完会打印 `通过 319   失败 0`，并把机器可读报告写到 `docs/e2e-report.json`、完整日志写到 `docs/e2e-run.log`。
 
 测试是**可重复**的：每轮开头会调一次 `POST /__reset` 把服务恢复到出厂状态（清主机盘/工作区，重播种子数据），所以连跑十遍结果一样。
 
@@ -92,7 +92,7 @@ clawsgo-opensource/
 ├─ THIRD-PARTY-NOTICES.md   第三方依赖许可清单
 ├─ .gitignore               已排除 server/data（运行时产物）
 │
-├─ site/                    营销站 — 5 页 + 全部静态资源（Next.js 产物）
+├─ site/                    营销站 — 19 页 + 全部静态资源（Next.js 产物）
 ├─ app/                     应用端 — React SPA 全量产物（924 个文件）
 ├─ server/                  复刻后端（零第三方依赖，约 10.6k 行）
 │  ├─ serve.mjs             :5180 静态托管 · :5181 应用 + API + SSE + WS
@@ -151,7 +151,7 @@ clawsgo-opensource/
 
 | 域名 | 技术栈 | 性质 |
 |---|---|---|
-| `clawsgo.cn` / `clawsgo.ai` | **Next.js**（App Router，Turbopack 构建） | 营销站，5 个预渲染静态页 |
+| `clawsgo.cn` / `clawsgo.ai` | **Next.js**（App Router，Turbopack 构建） | 营销站，19 个预渲染静态页 |
 | `app.clawsgo.cn` | **React 19 + Vite/Rolldown** | 真正的应用，登录墙后 |
 | `api.clawsgo.cn` | RPC over POST | `POST /api/<command>`，信封 `{data}` |
 
@@ -187,7 +187,7 @@ clawsgo-opensource/
 
 | 项 | 状态 |
 |---|---|
-| 营销站 5 页 + 应用端 924 个产物文件 | ✅ 完整，离线可跑 |
+| 营销站 19 页 + 应用端 1098 个产物文件 | ✅ 完整，离线可跑 |
 | 动画与动效 | ✅ 完整（CSS 关键帧 + Framer Motion 参数均在产物内） |
 | API 契约与后端实现 | ✅ 211 条命令，219 项断言全绿 |
 | 智能体工具链 | ✅ 真实执行；「决定调什么工具」在无 LLM 时用规则代替 |

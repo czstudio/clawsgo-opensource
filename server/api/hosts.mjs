@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { db$, uuid, now, save, rid } from '../lib/db.mjs';
 import { host, sshServer, skill } from '../lib/shapes.mjs';
+import { hub } from '../lib/sse.mjs';
 import { req, notFound, need, badRequest, conflict } from '../lib/errors.mjs';
 
 function ownHost(hostId, ctx) {
@@ -77,6 +78,7 @@ async function createHost(p, ctx) {
   }, 2000);
   if (t.unref) t.unref();
 
+  hub.hostPresence(h.teamId, { hostId: h.id, kind: 'created' });
   return { host: host(h), hosts: db.hosts.filter((x) => x.teamId === h.teamId).map(host) };
 }
 
@@ -98,19 +100,32 @@ async function deleteHost(p, ctx) {
   db.hosts = db.hosts.filter((x) => x.id !== h.id);
   deleteHostVirtualDisk(h.id);
   save();
+  hub.hostPresence(h.teamId, { hostId: h.id, kind: 'deleted' });
   return { ok: true, id: h.id };
+}
+
+function emitRunHost(hostId, offline) {
+  // 对在该主机上有活动运行的会话下发 run-host（前端置 hostOffline → 任务 paused）
+  for (const c of db$().conversations.filter((x) => x.hostId === hostId && x.streamId)) {
+    const run = hub.run(c.id);
+    if (run) hub.runHost(run, offline);
+  }
 }
 
 async function rebuildHost(p, ctx) {
   const h = ownHost(req(p, 'hostId'), ctx);
   h.status = 'rebuilding';
   save();
+  emitRunHost(h.id, true);
+  hub.hostPresence(h.teamId, { hostId: h.id, kind: 'rebuilding' });
   const t = setTimeout(() => {
     const row = db$().hosts.find((x) => x.id === h.id);
     if (row) {
       row.status = 'running';
       row.lastSeenAt = now();
       save();
+      emitRunHost(h.id, false);
+      hub.hostPresence(row.teamId, { hostId: h.id, kind: 'running' });
     }
   }, 2500);
   if (t.unref) t.unref();
@@ -416,7 +431,14 @@ async function probeSshServers(p, ctx) {
   const db = db$();
   for (const r of results) {
     const h = db.hosts.find((x) => x.teamId === r.teamId && x.name === r.name && x.kind === 'ssh');
-    if (h) h.status = r.status === 'online' ? 'running' : 'offline';
+    if (h) {
+      const next = r.status === 'online' ? 'running' : 'offline';
+      if (h.status !== next) {
+        h.status = next;
+        emitRunHost(h.id, next !== 'running');
+        hub.hostPresence(h.teamId, { hostId: h.id, kind: next });
+      }
+    }
   }
   save();
   return { sshServers: results, results, items: results, total: results.length };

@@ -30,7 +30,8 @@ export class SseHub {
 
     this.write(client, { t: 'channel-ack', running });
 
-    // 把仍在运行的会话当前 parts 推成 snapshot，便于刷新后恢复
+    // 把仍在运行的会话当前 parts 推成 snapshot，便于刷新后恢复。
+    // 前端 useConversationStream 读 turnRows/hostOffline/contextTokens（缺省容忍，但补齐字段保持同形）。
     for (const r of this.runs.values()) {
       if (r.teamId !== teamId) continue;
       this.write(client, {
@@ -38,8 +39,11 @@ export class SseHub {
         conversationId: r.conversationId,
         teamId: r.teamId,
         messageId: r.messageId,
+        turnRows: r.turnRows,
         parts: r.parts,
         permissions: r.permissions,
+        hostOffline: r.hostOffline ?? false,
+        contextTokens: r.contextTokens,
       });
     }
 
@@ -83,6 +87,8 @@ export class SseHub {
       messageId,
       parts,
       permissions,
+      hostOffline: false,
+      contextTokens: undefined,
       settled: null,
     };
     this.runs.set(conversationId, run);
@@ -101,10 +107,49 @@ export class SseHub {
         conversationId: run.conversationId,
         teamId: run.teamId,
         messageId: run.messageId,
+        turnRows: run.turnRows,
         parts: run.parts,
         permissions: run.permissions,
+        hostOffline: run.hostOffline ?? false,
+        contextTokens: run.contextTokens,
       },
       { teamId: run.teamId },
+    );
+  }
+
+  /** 上下文用量（前端写进 run 态 contextTokens，用于「Context N%」指示） */
+  runContext(run, tokens) {
+    run.contextTokens = tokens;
+    this.publish(
+      { t: 'run-context', conversationId: run.conversationId, tokens },
+      { teamId: run.teamId },
+    );
+  }
+
+  /** 运行中主机离线/恢复（前端置 hostOffline → 任务显示 paused） */
+  runHost(run, offline) {
+    run.hostOffline = !!offline;
+    this.publish(
+      { t: 'run-host', conversationId: run.conversationId, offline: !!offline },
+      { teamId: run.teamId },
+    );
+  }
+
+  /** 主机列表/状态粗粒度变更（前端走 onCoarse 触发主机侧刷新） */
+  hostPresence(teamId, extra = {}) {
+    this.publish({ t: 'host-presence', teamId, ...extra }, { teamId });
+  }
+
+  /** 生图任务更新（前端 onCoarse 触发生图区刷新） */
+  imageUpdated(teamId, frame = {}) {
+    this.publish({ t: 'image-updated', teamId, ...frame }, { teamId });
+  }
+
+  /** 会话已读回执（前端 onCoarse 触发未读数刷新） */
+  conversationRead(teamId, conversationId) {
+    this.publish(
+      { t: 'conversation-read', teamId, conversationId },
+      { teamId },
     );
   }
 

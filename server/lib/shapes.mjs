@@ -14,6 +14,7 @@ export function user(userId) {
     avatarUrl: u.avatarUrl ?? null,
     locale: u.locale ?? 'zh-CN',
     theme: u.theme ?? 'dark',
+    role: u.role ?? 'user',
     banned: !!u.banned,
     banReason: u.banReason ?? null,
     createdAt: u.createdAt,
@@ -150,6 +151,9 @@ export function conversation(c) {
     userId: c.userId,
     projectId: c.projectId ?? null,
     projectKind: p?.kind ?? 'implicit',
+    // 侧栏条目消费字段（_shell chunk x(e)：creatorName/projectTitle/kind/taskCount）
+    creatorName: db.users.find((x) => x.id === c.userId)?.name ?? '',
+    projectTitle: p?.name ?? null,
     title: c.title ?? '',
     hostId: c.hostId ?? null,
     workdir: c.workdir ?? null,

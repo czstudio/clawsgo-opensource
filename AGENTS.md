@@ -15,7 +15,7 @@
 |---|---|---|
 | ① | **前端是原样产物，不是源码。** `app/assets/` 与 `site/` 是生产构建的 minified 文件（`api-pyi_9PXn.js`、`_shell-CSlH67JO.js` 这种带 hash 的名字） | 不要试图「修改前端源码」。要理解前端行为只能做**静态分析**（grep 字符串、还原调用点）。改前端行为的正确做法是在 `server/` 侧适配 |
 | ② | **后端是重写的，不是抓下来的。** `server/` 下约 10.6k 行零依赖 Node 代码 | 线上后端源码不可得。这里每一条命令都是「按前端调用点反推出的契约」重写的。**契约的唯一权威是 bundle 里的调用点，不是你的直觉** |
-| ③ | **验收是可执行的硬门槛。** `tools/e2e.mjs` 219 项断言 | 改任何东西之后必须重跑，必须 `失败 0`。这不是建议，是这个仓库的完成定义 |
+| ③ | **验收是可执行的硬门槛。** `tools/e2e.mjs` 319 项断言 | 改任何东西之后必须重跑，必须 `失败 0`。这不是建议，是这个仓库的完成定义 |
 
 ---
 
@@ -27,13 +27,13 @@ node server/serve.mjs          # 零依赖，只需 Node 18+
 
 | 地址 | 是什么 |
 |---|---|
-| http://localhost:5180 | 营销站（5 页静态） |
+| http://localhost:5180 | 营销站（19 页静态） |
 | http://localhost:5181 | 应用端 + 全部 API |
 
 登录 `13800000000` / 验证码任意 6 位 / 密码 `clawsgo2026`；管理员 `13900000000` 可进 `/admin`。
 
 ```bash
-node tools/e2e.mjs             # 219 项断言，约 25s，输出 docs/e2e-run.log + docs/e2e-report.json
+node tools/e2e.mjs             # 319 项断言，约 25s，输出 docs/e2e-run.log + docs/e2e-report.json
 node tools/glob.test.mjs       # glob→regex 回归（改 workspace.mjs 后必跑）
 ```
 
@@ -59,10 +59,10 @@ clawsgo-opensource/
 ├── NOTICE.md               权属 / 许可 / 发布前检查清单（⚠️ 公开前必读）
 ├── .gitignore              server/data 是运行时产物，已排除
 │
-├── site/                   营销站产物（Next.js 静态导出）：5 页 + _next 资源 + 图片
+├── site/                   营销站产物（Next.js 静态导出）：19 页 + _next 资源 + 图片
 ├── app/                    应用端产物（React SPA）
 │   ├── index.html          SPA 外壳
-│   ├── assets/             924 个产物文件（742 JS / 8 CSS / 174 字体·图片·wasm）
+│   ├── assets/             1098 个产物文件（~820 JS / ~10 CSS / ~268 字体·图片·wasm）
 │   └── root/               站点根杂项
 │
 ├── server/                 ★ 复刻后端（全部要改的东西都在这）
@@ -117,7 +117,7 @@ clawsgo-opensource/
 | `02-路由表.md` | 33 条前端路由 ↔ chunk 的对应 |
 | `03-API契约.md` | 契约的来源、传输层、命令分组全表 |
 | `07-数据形状.md` | **改后端前必读** —— 字段名、单位、分页、公式，每条附证据 |
-| `08-命令实现对照表.md` | 211 条命令 ↔ `文件:行号`。**自动生成，不要手改** |
+| `08-命令实现对照表.md` | 266 条命令 ↔ `文件:行号`。**自动生成，不要手改** |
 | `04-功能与依赖清单.md` | 前端用到的库与版本 |
 | `05-动画与动效.md` | CSS 关键帧与 Framer Motion 参数 |
 | `e2e-report.json` / `e2e-run.log` | 最近一次验收的机器可读报告与完整日志 |
@@ -139,7 +139,7 @@ clawsgo-opensource/
 
 `contracts/` 四个文件：
 
-- `commands.json` — 211 条命令的域名分组 + 传输契约（生产/全球区 base URL、信封格式）
+- `commands.json` — 266 条命令的域名分组 + 传输契约（生产/全球区 base URL、信封格式）
 - `routes.json` — 33 条前端路由
 - `app_analysis.json` — bundle 静态分析汇总
 - `mirror-manifest.json` — 镜像元信息
@@ -355,7 +355,7 @@ CLAWSGO_ONLYOFFICE_URL=https://your-document-server node server/serve.mjs   # �
 ## 11. 验收
 
 ```bash
-node tools/e2e.mjs        # 219 项，17 节
+node tools/e2e.mjs        # 319 项，18 节
 ```
 
 覆盖：认证与会话 / 资料团队不变量 / 会话分页契约 / 发消息·SSE·审批·子智能体·标题 / 消息与费用 /
@@ -382,8 +382,8 @@ node tools/e2e.mjs        # 219 项，17 节
 
 | 项 | 状态 |
 |---|---|
-| 营销站 5 页 + 应用端 924 个产物文件 | ✅ 完整离线可跑 |
-| 211 条命令 / 219 项断言 | ✅ 全绿，可重复 |
+| 营销站 19 页 + 应用端 1098 个产物文件 | ✅ 完整离线可跑 |
+| 266 条命令 / 319 项断言 | ✅ 全绿，可重复 |
 | 智能体工具链 | ✅ 真实执行；无 LLM 时"决定调什么"用规则代替 |
 | Office 页内编辑 | ⚠️ 本地是**只读预览替身**；设 `CLAWSGO_ONLYOFFICE_URL` 可换真编辑器 |
 | 支付 | ⚠️ 本地收银台 + 自动确认，未接微信/支付宝 |

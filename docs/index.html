@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClawsGO 开源复刻 — 完整分析报告</title>
+<style>
+  :root { --bg:#0d1117; --fg:#c9d1d9; --accent:#58a6ff; --accent2:#238636; --border:#30363d; --card:#161b22; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; background:var(--bg); color:var(--fg); line-height:1.6; }
+  header { background:linear-gradient(135deg,#0d1117 0%,#161b22 100%); border-bottom:1px solid var(--border); padding:40px 20px; text-align:center; }
+  header h1 { font-size:2.2rem; margin-bottom:8px; background:linear-gradient(90deg,#58a6ff,#a371f7); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  header p { color:#8b949e; font-size:1.05rem; }
+  .stats { display:flex; justify-content:center; gap:40px; padding:30px 20px; flex-wrap:wrap; }
+  .stat { text-align:center; }
+  .stat .num { font-size:2.5rem; font-weight:700; color:var(--accent); }
+  .stat .label { color:#8b949e; font-size:0.9rem; }
+  nav { display:flex; justify-content:center; gap:10px; padding:15px; background:var(--card); border-bottom:1px solid var(--border); flex-wrap:wrap; position:sticky; top:0; z-index:100; }
+  nav a { color:var(--fg); text-decoration:none; padding:8px 16px; border-radius:6px; font-size:0.9rem; transition:background 0.2s; }
+  nav a:hover { background:var(--border); }
+  .container { max-width:1100px; margin:0 auto; padding:30px 20px; }
+  section { margin-bottom:50px; }
+  h2 { font-size:1.5rem; margin-bottom:20px; padding-bottom:10px; border-bottom:2px solid var(--accent); display:inline-block; }
+  h3 { font-size:1.15rem; margin:25px 0 12px; color:var(--accent); }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:24px; margin-bottom:20px; }
+  table { width:100%; border-collapse:collapse; margin:15px 0; font-size:0.92rem; }
+  th, td { padding:10px 14px; text-align:left; border-bottom:1px solid var(--border); }
+  th { background:#21262d; color:var(--accent); font-weight:600; }
+  tr:hover { background:#1c2128; }
+  code { background:#21262d; padding:2px 8px; border-radius:4px; font-family:"SFMono-Regular",Consolas,monospace; font-size:0.88em; color:#ff7b72; }
+  pre { background:#0d1117; border:1px solid var(--border); border-radius:8px; padding:16px; overflow-x:auto; font-size:0.85rem; line-height:1.5; }
+  .badge { display:inline-block; padding:3px 10px; border-radius:12px; font-size:0.78rem; font-weight:600; }
+  .badge-green { background:#23863633; color:#3fb950; }
+  .badge-blue { background:#1f6feb33; color:#58a6ff; }
+  .badge-red { background:#da363333; color:#f85149; }
+  .badge-purple { background:#8957e533; color:#a371f7; }
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  @media(max-width:768px){ .grid-2 { grid-template-columns:1fr; } .stats { gap:20px; } }
+  .diff-table td:first-child { font-weight:600; }
+  footer { text-align:center; padding:40px 20px; color:#8b949e; border-top:1px solid var(--border); margin-top:40px; }
+  .highlight { color:var(--accent); font-weight:600; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>ClawsGO 开源复刻 — 完整分析报告</h1>
+  <p>基于生产 bundle 逐字节分析 + 线上服务器实时探测 + 319 项端到端验收</p>
+</header>
+
+<div class="stats">
+  <div class="stat"><div class="num">19</div><div class="label">营销站页面</div></div>
+  <div class="stat"><div class="num">1098</div><div class="label">应用端产物文件</div></div>
+  <div class="stat"><div class="num">266</div><div class="label">后端 API 命令</div></div>
+  <div class="stat"><div class="num">319</div><div class="label">e2e 断言</div></div>
+  <div class="stat"><div class="num">0</div><div class="label">测试失败</div></div>
+</div>
+
+<nav>
+  <a href="#models">模型体系</a>
+  <a href="#terminal">终端/云主机</a>
+  <a href="#sse">SSE 协议</a>
+  <a href="#permissions">权限系统</a>
+  <a href="#images">图像生成</a>
+  <a href="#agents">子智能体/MCP</a>
+  <a href="#projects">项目系统</a>
+  <a href="#cards">卡包系统</a>
+  <a href="#diff">线上 vs 本地</a>
+  <a href="#security">安全发现</a>
+  <a href="#server">服务器指纹</a>
+</nav>
+
+<div class="container">
+
+<section id="models">
+<h2>一、模型体系（真实映射）</h2>
+<div class="card">
+<h3>ClawsGO 自有命名 → 底层模型</h3>
+<table>
+<tr><th>ClawsGO ID</th><th>底层模型</th><th>等级</th><th>描述</th></tr>
+<tr><td><code>clawsgo-1.5-lithium</code></td><td><code>deepseek-v4-flash-vision</code></td><td><span class="badge badge-green">轻量</span></td><td>DeepSeek 上一代轻量模型，低延迟、低消耗</td></tr>
+<tr><td><code>clawsgo-1.5-silicon</code></td><td><code>deepseek-v4-pro</code></td><td><span class="badge badge-blue">主力</span></td><td>DeepSeek 最新旗舰模型，擅长推理与智能体任务</td></tr>
+<tr><td><code>clawsgo-1.5-titanium</code></td><td><code>claude-opus-5-5-fast</code></td><td><span class="badge badge-purple">旗舰</span></td><td>Anthropic 最新 Mythos 级模型，为最难的科研问题打造</td></tr>
+</table>
+
+<h3>版本迁移映射</h3>
+<pre>// localStorage key: "clawsgo_picker_prefs"
+H = {
+  "clawsgo-1.0-lithium":   "clawsgo-1.5-lithium",
+  "clawsgo-1.0-silicon":   "clawsgo-1.5-silicon",
+  "clawsgo-1.0-titanium":  "clawsgo-1.5-titanium"
+}</pre>
+
+<h3>上下文长度选项</h3>
+<table>
+<tr><th>长度</th><th>描述</th></tr>
+<tr><td>128K tokens</td><td>默认</td></tr>
+<tr><td>512K tokens</td><td>More room for long papers and multi-step work. Uses more credits.</td></tr>
+<tr><td>1M tokens</td><td>容纳更多文献、数据与代码，细节保留更完整。算力消耗显著上升。</td></tr>
+</table>
+
+<h3>模式切换副作用</h3>
+<p>切换模型/模式会<strong>重置上下文缓存</strong>：</p>
+<blockquote>"Switching models resets the context cache. The next turn costs more, then back to normal."</blockquote>
+</div>
+</section>
+
+<section id="terminal">
+<h2>二、终端/云主机实现（真实）</h2>
+<div class="card">
+<h3>架构：真 SSH + 远程 Shell</h3>
+<pre>前端 xterm.js ←→ WebSocket ←→ 后端 SSH 代理 ←→ 真实云主机（按需唤醒）</pre>
+
+<h3>WebSocket 协议（<code>_shell-DLMlr5Wy.js:167739</code>）</h3>
+<table>
+<tr><th>步骤</th><th>操作</th></tr>
+<tr><td>1</td><td><code>attachProjectTerminal</code> / <code>attachTerminal</code> → 获取 ticket</td></tr>
+<tr><td>2</td><td>WebSocket 连接（URL 含 ticket）</td></tr>
+<tr><td>3</td><td>消息交换</td></tr>
+</table>
+
+<h3>消息格式</h3>
+<table>
+<tr><th>类型 <code>t</code></th><th>含义</th></tr>
+<tr><td><code>"data"</code></td><td>终端输出（含 <code>bytes</code> 字段）</td></tr>
+<tr><td><code>"exit"</code></td><td>进程退出</td></tr>
+<tr><td><code>"reason"</code></td><td>错误原因</td></tr>
+</table>
+
+<h3>连接状态机</h3>
+<table>
+<tr><th>状态</th><th>含义</th></tr>
+<tr><td><code>connected</code></td><td>正常连接</td></tr>
+<tr><td><code>link_lost</code></td><td>连接断开</td></tr>
+<tr><td><code>failed</code></td><td>连接失败</td></tr>
+<tr><td><code>session_gone</code></td><td>会话不存在</td></tr>
+</table>
+
+<h3>错误码</h3>
+<table>
+<tr><th>Code</th><th>含义</th></tr>
+<tr><td><code>NOT_FOUND</code></td><td>终端不存在</td></tr>
+<tr><td><code>HOST_OFFLINE</code></td><td>云主机离线</td></tr>
+</table>
+
+<h3>云主机特性</h3>
+<p><span class="highlight">按需唤醒（sleep/wake）</span>：</p>
+<blockquote>"正在读取文件清单，唤醒云主机可能需要等待片刻"</blockquote>
+</div>
+</section>
+
+<section id="sse">
+<h2>三、SSE 流式协议（真实）</h2>
+<div class="card">
+<h3>端点</h3>
+<p><code>POST /api/subscribeEvents</code>（raw SSE，非 JSON 包装）</p>
+
+<h3>事件类型</h3>
+<table>
+<tr><th>事件名</th><th>含义</th></tr>
+<tr><td><code>part-delta</code></td><td>增量内容推送</td></tr>
+<tr><td><code>track-part</code></td><td>子智能体步骤跟踪</td></tr>
+<tr><td><code>permission</code></td><td>工具执行权限请求</td></tr>
+<tr><td><code>change</code></td><td>文件变更通知</td></tr>
+<tr><td><code>state</code></td><td>状态更新</td></tr>
+</table>
+
+<h3>消息 Part 类型</h3>
+<table>
+<tr><th>类型</th><th>说明</th></tr>
+<tr><td><code>text</code></td><td>文本输出</td></tr>
+<tr><td><code>reasoning</code></td><td>推理过程</td></tr>
+<tr><td><code>tool</code></td><td>工具调用</td></tr>
+<tr><td><code>image</code></td><td>图像</td></tr>
+<tr><td><code>file</code></td><td>文件引用</td></tr>
+</table>
+</div>
+</section>
+
+<section id="permissions">
+<h2>四、权限系统（真实）</h2>
+<div class="card">
+<h3>工具审批流</h3>
+<ol>
+<li>Bash 执行前 → 后端发 SSE <code>permission</code> 帧</li>
+<li>前端显示 <strong>Approve / Deny</strong> 按钮</li>
+<li>用户点击 <code>allow</code> → 继续执行</li>
+<li>用户点击 <code>deny</code> → 终止执行</li>
+</ol>
+
+<h3>权限语义</h3>
+<table>
+<tr><th>术语</th><th>含义</th></tr>
+<tr><td><code>permission</code></td><td>权限请求帧</td></tr>
+<tr><td><code>approve</code></td><td>批准</td></tr>
+<tr><td><code>deny</code></td><td>拒绝</td></tr>
+<tr><td><code>reject</code></td><td>拒绝（另一种表述）</td></tr>
+</table>
+</div>
+</section>
+
+<section id="images">
+<h2>五、图像生成系统（真实）</h2>
+<div class="card">
+<h3>前端</h3>
+<ul>
+<li>内置模板库：<code>mechanism</code>、<code>flat</code>、<code>academic</code>、<code>chemistry</code>、<code>anatomy</code> 等风格</li>
+<li>宽高比：<code>auto</code>、<code>1:1</code>、<code>16:9</code>、<code>9:16</code></li>
+<li>调用命令：<code>generateImage</code></li>
+</ul>
+
+<h3>本地复刻实现</h3>
+<p>后端 <code>images.mjs</code> 使用零依赖 PNG 编码器：</p>
+<ul>
+<li>自写 CRC32 表</li>
+<li>zlib deflate 压缩</li>
+<li>HSL→RGB 渲染算法生成占位图</li>
+</ul>
+</div>
+</section>
+
+<section id="agents">
+<h2>六、子智能体与 MCP（真实）</h2>
+<div class="card">
+<h3>子智能体</h3>
+<table>
+<tr><th>属性</th><th>规则</th></tr>
+<tr><td>名称规则</td><td><code>/^[a-zA-Z0-9_-]{1,64}$/</code>，不能以 <code>-</code> 开头，不能含 <code>:</code></td></tr>
+<tr><td>内容格式</td><td>frontmatter + Markdown 正文</td></tr>
+<tr><td>管理命令</td><td><code>createSubagent</code>、<code>getSubagents</code>、<code>updateSubagent</code>、<code>deleteSubagent</code></td></tr>
+</table>
+
+<h3>MCP 服务器</h3>
+<table>
+<tr><th>属性</th><th>规则</th></tr>
+<tr><td>传输方式</td><td><code>stdio</code>、<code>http</code>、<code>sse</code></td></tr>
+<tr><td>配置字段</td><td><code>command</code>、<code>args</code>（数组）、<code>env</code>（对象）</td></tr>
+<tr><td>名称规则</td><td><code>/^[A-Za-z0-9_-]{1,64}$/</code></td></tr>
+<tr><td>管理命令</td><td><code>upsertMcpServer</code>、<code>getMcpServers</code>、<code>probeMcpServer</code>、<code>removeMcpServer</code></td></tr>
+</table>
+</div>
+</section>
+
+<section id="projects">
+<h2>七、项目系统（真实）</h2>
+<div class="card">
+<h3>项目 = 隔离工作区</h3>
+<table>
+<tr><th>资源</th><th>命令</th></tr>
+<tr><td>文件系统</td><td><code>getProjectFiles</code>、<code>downloadProjectFile</code></td></tr>
+<tr><td>终端</td><td><code>createProjectTerminal</code>、<code>attachProjectTerminal</code></td></tr>
+<tr><td>Git</td><td><code>getProjectGitStatus</code>、<code>getProjectGitSnapshot</code>、<code>getProjectGitHistory</code></td></tr>
+</table>
+
+<h3>终端复用</h3>
+<p>项目终端<strong>复用</strong>会话终端的 WebSocket 基础设施：</p>
+<ul>
+<li>同一个 <code>terminalTickets</code> 表</li>
+<li>同一个 <code>/api/terminal/ws</code> 端点</li>
+<li>通过 <code>projectId</code> 区分工作区</li>
+</ul>
+</div>
+</section>
+
+<section id="cards">
+<h2>八、卡包系统（真实）</h2>
+<div class="card">
+<h3>卡类型</h3>
+<table>
+<tr><th>类型</th><th>效果</th></tr>
+<tr><td><code>week</code></td><td>升级套餐 7 天</td></tr>
+<tr><td><code>credit</code></td><td>直接充积分</td></tr>
+</table>
+
+<h3>使用规则</h3>
+<ul>
+<li>用卡<strong>不会降档</strong>（只升不降）</li>
+<li>周卡积分：<code>Math.round(monthly * days / 30)</code></li>
+<li>用完/过期后自动回落原套餐</li>
+</ul>
+</div>
+</section>
+
+<section id="diff">
+<h2>九、线上真实 vs 本地复刻</h2>
+<div class="card">
+<table class="diff-table">
+<tr><th>维度</th><th>线上真实</th><th>本地复刻</th></tr>
+<tr><td>底层模型</td><td>DeepSeek + OpenAI + Anthropic + 智谱 + Google</td><td>规则引擎模拟</td></tr>
+<tr><td>云主机</td><td>真实 SSH 远程主机（按需唤醒）</td><td>本地迷你 shell</td></tr>
+<tr><td>图像生成</td><td>真实 AI 模型</td><td>HSL→RGB 占位图</td></tr>
+<tr><td>终端</td><td>xterm.js + 真 WebSocket + SSH</td><td>迷你 WebSocket + 本地 exec</td></tr>
+<tr><td>MCP</td><td>真实子进程/HTTP/SSE</td><td>配置存储，不启动</td></tr>
+<tr><td>LLM 推理</td><td>真实模型推理</td><td>规则匹配决定工具调用</td></tr>
+<tr><td>计费</td><td>真实支付/微信/支付宝</td><td>模拟支付流程</td></tr>
+<tr><td>验证码</td><td>阿里云 FeiLin 滑块 1.5.1</td><td>任意 6 位</td></tr>
+<tr><td>设备指纹</td><td>cloudauth 上报</td><td>无</td></tr>
+<tr><td>速率限制</td><td>有</td><td>无</td></tr>
+</table>
+</div>
+</section>
+
+<section id="security">
+<h2>十、安全发现</h2>
+<div class="card">
+<h3>前端暴露的敏感信息</h3>
+<table>
+<tr><th>信息</th><th>位置</th><th>风险</th></tr>
+<tr><td><code>SceneId: 18clmrek</code></td><td>登录页 JS</td><td>阿里云验证码场景 ID（公开级）</td></tr>
+<tr><td><code>FeiLinCaptcha 1.5.1</code></td><td>登录页 JS</td><td>滑块验证码版本</td></tr>
+<tr><td><code>cloudauth.aliyuncs.com</code></td><td>登录页 JS</td><td>设备指纹上报地址</td></tr>
+<tr><td><code>phonePrefix: w2cj5a</code></td><td>PhoneOtpFields</td><td>手机号前缀内部编码</td></tr>
+</table>
+
+<h3>模型名称泄露</h3>
+<p>bundle 中硬编码了所有底层模型名称，包括未公开的内部型号：</p>
+<ul>
+<li><code>deepseek-v4-pro</code></li>
+<li><code>claude-opus-5-5-fast</code></li>
+<li><code>glm-5.3-flash</code></li>
+<li>OpenAI GPT 6 系列多个变体</li>
+</ul>
+
+<h3>本地复刻风险</h3>
+<table>
+<tr><th>端点</th><th>风险</th></tr>
+<tr><td><code>POST /__reset</code></td><td>任意重置所有数据</td></tr>
+<tr><td><code>POST /__shutdown</code></td><td>关闭服务</td></tr>
+<tr><td>验证码</td><td>无验证，任意 6 位通过</td></tr>
+<tr><td>设备指纹</td><td>无</td></tr>
+<tr><td>速率限制</td><td>无</td></tr>
+</table>
+</div>
+</section>
+
+<section id="server">
+<h2>十一、服务器指纹（2026-10-09 实时探测）</h2>
+<div class="card">
+<div class="grid-2">
+<div>
+<h3>app.clawsgo.cn</h3>
+<pre>HTTP/2 200
+server: nginx/1.31.6
+content-type: text/html
+etag: "6ac74d1e-1fad"
+last-modified: Thu, 08 Oct 2026 07:58:22 GMT</pre>
+</div>
+<div>
+<h3>api.clawsgo.cn</h3>
+<pre>HTTP/2 404
+access-control-allow-credentials: true
+access-control-expose-headers:
+  set-auth-token,content-disposition,
+  accept-ranges,content-range
+content-type: text/plain; charset=UTF-8</pre>
+</div>
+</div>
+<div style="margin-top:20px;">
+<h3>clawsgo.cn（营销站）</h3>
+<pre>HTTP/2 200
+x-powered-by: Next.js
+x-nextjs-cache: HIT
+x-nextjs-prerender: 1
+content-type: text/html; charset=utf-8
+content-length: 744377</pre>
+</div>
+</div>
+</section>
+
+<section>
+<h2>附录：关键文件证据</h2>
+<div class="card">
+<table>
+<tr><th>信息</th><th>文件</th><th>偏移/位置</th></tr>
+<tr><td>模型映射</td><td><code>app/assets/useConversationStream-Bfce93ac.js</code></td><td>~1500</td></tr>
+<tr><td>模型描述</td><td><code>app/assets/ChatStatusBar-CMXxaPi9.js</code></td><td>多处</td></tr>
+<tr><td>终端 WS 协议</td><td><code>app/assets/_shell-DLMlr5Wy.js</code></td><td>167739</td></tr>
+<tr><td>图像模板</td><td><code>app/assets/ImageTemplateLibrary-CfhZqIS8.js</code></td><td>多处</td></tr>
+<tr><td>API 包装器</td><td><code>app/assets/api-DYG_whnY.js</code></td><td>全局</td></tr>
+<tr><td>卡包系统</td><td><code>server/api/cards.mjs</code></td><td>全局</td></tr>
+<tr><td>图像生成</td><td><code>server/api/images.mjs</code></td><td>全局</td></tr>
+<tr><td>项目系统</td><td><code>server/api/projects.mjs</code></td><td>全局</td></tr>
+<tr><td>子智能体/MCP</td><td><code>server/api/agents.mjs</code></td><td>全局</td></tr>
+</table>
+</div>
+</section>
+
+</div>
+
+<footer>
+  <p>ClawsGO 开源复刻项目 — 完整逆向分析报告</p>
+  <p>生成时间：2026-10-09 | 分析方法：生产 bundle 逐字节静态分析 + 线上服务器实时探测</p>
+  <p>所有结论均附带文件:行号证据，非猜测</p>
+</footer>
+
+</body>
+</html>

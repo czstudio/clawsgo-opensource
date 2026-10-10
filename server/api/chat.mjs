@@ -937,6 +937,7 @@ async function markConversationRead(p, ctx) {
   c.lastReadAt = now();
   c.unreadCount = 0;
   save();
+  hub.conversationRead(c.teamId, c.id);
   return { ok: true, conversationId: c.id, lastReadAt: c.lastReadAt };
 }
 

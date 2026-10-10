@@ -1634,7 +1634,8 @@ async function main() {
 /* ------------------------------------------------------------------ */
 
 function commitsOf(contracts) {
-  return contracts.commands_by_group;
+  if (Array.isArray(contracts)) return { all: contracts };
+  return contracts.commands_by_group || contracts;
 }
 
 // 运行时从服务器拉取已注册命令（顺带验证自省端点）

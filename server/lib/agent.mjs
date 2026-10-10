@@ -118,6 +118,10 @@ async function toolPart(run, s, { toolUseId, toolName, input, run: exec, state =
   };
   s.parts[idx] = finalPart;
   hub.part(run, idx, finalPart);
+  // 线上同款 run-context 帧：每个工具回合后上报上下文用量（前端 Context N% 指示）
+  try {
+    hub.runContext(run, 2400 + Math.round(JSON.stringify(s.parts).length / 2.2));
+  } catch { /* 帧失败不影响主流程 */ }
   await sleep(60);
   return finalPart;
 }
@@ -147,6 +151,13 @@ export async function startAgentRun({ conversation, userMessage, assistantMessag
     messageId: assistantMessage.id,
     parts: [],
   });
+  // 初始上下文用量帧（线上首轮即有 run-context）
+  try {
+    const historyChars = db$()
+      .messages.filter((m) => m.conversationId === conversation.id)
+      .reduce((a, m) => a + (m.parts ?? []).filter((p) => p.type === 'text').reduce((x, p) => x + (p.text?.length ?? 0), 0), 0);
+    hub.runContext(run, 2400 + Math.round(historyChars / 2.2));
+  } catch { /* 忽略 */ }
   const s = newRunState();
   run.abort = () => {
     s.aborted = true;

@@ -165,7 +165,7 @@ export async function handleAuth(req, res, cmd, body, query) {
       attempts: 0,
     });
     // 演示环境把验证码直接回给客户端（生产不返回）
-    return ok(res, { requestId, expiresAt: new Date(nowMs + OTP_TTL).toISOString(), devCode: DEMO.otp }), true;
+    return ok(res, { requestId, expiresAt: new Date(nowMs + OTP_TTL).toISOString(), ...(process.env.CLAWSGO_DEV_OTP === '1' ? { devCode: DEMO.otp } : {}) }), true;
   }
 
   if (cmd === 'phone-number/verify') {
@@ -212,7 +212,7 @@ export async function handleAuth(req, res, cmd, body, query) {
       attempts: 0,
       reset: true,
     });
-    return ok(res, { requestId, devCode: DEMO.otp }), true;
+    return ok(res, { requestId, ...(process.env.CLAWSGO_DEV_OTP === '1' ? { devCode: DEMO.otp } : {}) }), true;
   }
 
   if (cmd === 'phone-number/reset-password') {

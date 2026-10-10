@@ -41,7 +41,7 @@ function listOut(key, rows, total, p) {
   return { [key]: rows, items: rows, total, limit: LIMIT(p), offset: OFFSET(p) };
 }
 
-function adminOnly(ctx) {
+export function adminOnly(ctx) {
   need(['admin', 'super_admin'].includes(ctx.user.role), 'FORBIDDEN', '需要管理员权限', 403);
 }
 

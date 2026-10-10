@@ -14,6 +14,7 @@
 import { db$, uuid, now, save, rid } from '../lib/db.mjs';
 import { ticket, ticketMessage, announcement } from '../lib/shapes.mjs';
 import { req, notFound, need, badRequest, conflict } from '../lib/errors.mjs';
+import { adminOnly } from './admin.mjs';
 
 const ATTACH_TTL_SECONDS = 7 * 24 * 3600;
 
@@ -241,6 +242,7 @@ export const commands = {
   getActiveAnnouncements,
   // admin 别名
   adminGetTickets: async (p, ctx) => {
+    adminOnly(ctx);
     const limit = Math.max(1, Math.min(200, Number(p?.limit) || 20));
     const offset = Math.max(0, Number(p?.offset) || 0);
     let rows = db$().tickets;
@@ -254,6 +256,7 @@ export const commands = {
     return { tickets: page, items: page, total: rows.length, limit, offset };
   },
   adminGetTicket: async (p, ctx) => {
+    adminOnly(ctx);
     const t = db$().tickets.find((x) => x.id === (p?.ticketId ?? p?.id));
     if (!t) notFound('工单');
     const messages = db$()
@@ -263,6 +266,7 @@ export const commands = {
     return { ticket: ticket(t), messages, truncated: false };
   },
   adminReplyTicket: async (p, ctx) => {
+    adminOnly(ctx);
     const t = db$().tickets.find((x) => x.id === (p?.ticketId ?? p?.id));
     if (!t) notFound('工单');
     const body = String(p?.body ?? '').trim();
@@ -285,6 +289,7 @@ export const commands = {
     return { ok: true, ticket: ticket(t) };
   },
   adminCloseTicket: async (p, ctx) => {
+    adminOnly(ctx);
     const t = db$().tickets.find((x) => x.id === (p?.ticketId ?? p?.id));
     if (!t) notFound('工单');
     t.status = 'closed';
@@ -321,6 +326,7 @@ export const commands = {
     return { announcements: rows, items: rows, total: rows.length };
   },
   adminCreateAnnouncement: async (p, ctx) => {
+    adminOnly(ctx);
     const row = {
       id: uuid(),
       titleZh: req(p, 'titleZh'),

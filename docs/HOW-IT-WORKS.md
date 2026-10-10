@@ -167,7 +167,7 @@ part 形状（两端一致）：`{type:'text'|'reasoning', text}` / `{type:'tool
 | 维度 | 线上 | 本地复刻现状 | 补齐路径 |
 |---|---|---|---|
 | LLM 供给 | 自有三档 + 原生直连（§9.1） | 演示引擎；env `CLAWSGO_LLM_*` 可接任意 OpenAI 兼容真模型，帧协议不变 | 配 env 即真 |
-| SSE 帧 | 15 帧 | 10 帧 + ping；缺 `run-context/run-host/host-presence/image-updated/conversation-read` | server/lib/sse.mjs 补 5 发射点 |
+| SSE 帧 | 15 帧 | **14/15 已实现**（2026-10-09 补齐 run-context/run-host/host-presence/image-updated/conversation-read；线上实测 run-context×4 与 conversation-read 在流，host-presence/run-host/image-updated 发射器进程内写入验证 + e2e 319 绿；唯 image-updated 线上触发时机与快照 turnRows 为同形近似） | 已补：sse.mjs + agent/hosts/images/chat 四调用点 |
 | 云主机 | 真 SSH 远程主机 + 按需唤醒 + noVNC 桌面 | 虚拟盘 + 2s 模拟开通 + 真 TCP 探活 | 接真 SSH exec / noVNC 代理 |
 | 终端 | xterm.js ↔ WS ↔ SSH | ticket+WS+本地 exec（协议同形） | 后端 exec→SSH 通道 |
 | 生图 | 真实 AI 模型 | PNG 占位图 | images.mjs 接生图 API |

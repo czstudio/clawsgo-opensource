@@ -763,6 +763,29 @@ async function copyAgentInstructions(p, ctx) {
 /* LaTeX（本地复刻：返回可用的最小实现）                               */
 /* ------------------------------------------------------------------ */
 
+async function compileTypst(p, ctx) {
+  // 新版前端契约（ChatFilePreview chunk @98683）：.typ 预览时 POST compileTypst
+  // {conversationId, path} → {compile:{pdfPath, pdfChanged,...}}，编译产物落工作区
+  const c = ownConversation(req(p, 'conversationId'), ctx);
+  const rel = String(req(p, 'path', 'file'));
+  const ws = ensureWorkspace(c.id);
+  const abs = safeJoin(ws, rel);
+  if (!abs) throw badRequest('路径越界');
+  if (!fs.existsSync(abs)) notFound('Typst 源文件');
+  const pdfRel = rel.replace(/\.typ$/i, '.pdf');
+  const pdfAbs = safeJoin(ws, pdfRel);
+  const had = fs.existsSync(pdfAbs);
+  const { execFile } = await import('node:child_process');
+  const typst = await new Promise((resolve) => {
+    execFile('typst', ['compile', abs, pdfAbs], { timeout: 60_000 }, (err) => resolve(!err));
+  });
+  if (!typst) {
+    // 本地无 typst 引擎：同形降级（生产为真实编译）
+    return { compile: { pdfPath: null, pdfChanged: false, ok: false, log: 'local-reproduction: typst 引擎未安装，brew install typst 后可用' } };
+  }
+  return { compile: { pdfPath: pdfRel, pdfChanged: !had, ok: true } };
+}
+
 async function compileLatex(p, ctx) {
   const source = String(p?.source ?? '');
   return {
@@ -1051,6 +1074,7 @@ export const commands = {
   copyAgentInstructions,
   // LaTeX
   compileLatex,
+  compileTypst,
   getLatexCompletions,
   syncTexForward,
   syncTexInverse,

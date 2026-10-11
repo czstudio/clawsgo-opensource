@@ -696,7 +696,7 @@ async function llmAgent(ctx) {
       try {
         input = JSON.parse(c.args || '{}');
       } catch { /* keep {} */ }
-      const exec = () => executeTool(conversation.id, c.name, input);
+      const exec = () => executeTool(conversation.id, c.name, input, run.signal);
       if (c.name === 'Bash') {
         const decision = await requestPermission(run, 'Bash', input);
         if (decision.behavior !== 'allow') {
@@ -723,7 +723,10 @@ async function llmAgent(ctx) {
   }
 }
 
-async function executeTool(conversationId, name, input) {
+async function executeTool(conversationId, name, input, signal) {
+  // 纠偏（verify-04-negative-v3）：signal 必须是调用所属原 run 的（调用处闭包传入），
+  // 不得从 hub.run(conversationId) 反查后继 run 的 signal。
+  const originalSignal = signal;
   switch (name) {
     case 'Read':
       return readText(conversationId, input.file_path).toString('utf8').split('\n').slice(0, 400).join('\n');
@@ -740,10 +743,10 @@ async function executeTool(conversationId, name, input) {
       return hits.map((h) => `${h.path}:${h.line}: ${h.text}`).join('\n') || '(无命中)';
     }
     case 'Bash': {
-      // 独立验收 04 发现：run 不在 executeTool 词法作用域（ReferenceError）。
-      // 从 hub 取本会话当前 run 的 signal；无活动 run 时 signal 为 undefined（安全默认）。
-      const activeRun = hub.run(conversationId);
-      return (await toolBash(conversationId, input, activeRun?.signal)).output;
+      // 纠偏（verify-04-negative-v3）：必须用调用所属原 run 的 signal，
+      // 不能从 hub.run(conversationId) 反查（会拿到后继 run 的 signal）。
+      // executeTool 增加第三参 originalSignal，由调用处（runAgentRun 闭包内）显式传入。
+      return (await toolBash(conversationId, input, signal ?? null)).output;
     }
     case 'WebSearch':
       return JSON.stringify(await toolWebSearch({ query: input.query }), null, 2);

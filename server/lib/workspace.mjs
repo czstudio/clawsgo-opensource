@@ -809,6 +809,10 @@ function readMaybe(root, cwd, f) {
 /** 真实执行工作区内的脚本（10s 超时，路径必须落在工作区内） */
 async function runScript(bin, script, root, cwd, signal) {
   if (!script) return `${bin} 交互模式在本复刻终端中不可用，请指定脚本文件。`;
+  // 纠偏（verify-04-claws-process C1）：signal 已 abort 时预检直接返回（与 Novix sh() 同构）
+  if (signal?.aborted) {
+    return '(已取消，未执行)';
+  }
   const ext = path.extname(script).toLowerCase();
   if (ext !== '.py' && ext !== '.js' && ext !== '.mjs') {
     return `${bin}: 仅支持 .py/.js/.mjs 脚本（收到 ${script}）`;
@@ -833,24 +837,39 @@ async function runScript(bin, script, root, cwd, signal) {
   for (const exe of candidates) {
     for (const timeoutMs of TIMEOUT_LADDER) {
       const r = await new Promise((resolve) => {
+        // 纠偏（verify-04-claws-process C2）：detached 进程组 + 组杀 + SIGKILL 兜底（与 Novix sh() 同构）
         const child = spawn(exe, [abs], {
           cwd: fs.existsSync(runCwd) ? runCwd : path.dirname(abs),
           stdio: ['ignore', 'pipe', 'pipe'],
           windowsHide: true,
+          detached: true,
         });
         let out = '', killed = false;
-        const timer = setTimeout(() => { killed = true; child.kill('SIGTERM'); }, timeoutMs);
+        let abortInitiated = false; // abort 路径下 SIGKILL 兜底不得被 close 清除
+        let killTimer = null;
+        const timer = setTimeout(() => { killed = true; try { process.kill(-child.pid, 'SIGTERM'); } catch { /* gone */ } }, timeoutMs);
         child.stdout.on('data', (d) => { out += d; if (out.length > 4e6) child.kill('SIGTERM'); });
         child.stderr.on('data', (d) => { out += d; });
-        child.on('error', (e) => { clearTimeout(timer); resolve({ error: e }); });
+        child.on('error', (e) => { clearTimeout(timer); if (!abortInitiated && killTimer) clearTimeout(killTimer); resolve({ error: e }); });
         child.on('close', (code) => {
           clearTimeout(timer);
+          // abort 路径下不清 killTimer——SIGKILL 兜底必须仍执行（SIGTERM-ignore 进程场景）
+          if (!abortInitiated && killTimer) clearTimeout(killTimer);
           resolve({ status: code, out: out.trim(), killed });
         });
-        // cancel 路由 abort → SIGTERM（Bash 释放不留孤儿）
-        if (signal) signal.addEventListener('abort', () => { child.kill('SIGTERM'); }, { once: true });
+        // cancel 路由 abort → SIGTERM 组杀 + 2s SIGKILL 兜底（不留孤儿）
+        if (signal) signal.addEventListener('abort', () => {
+          abortInitiated = true;
+          try { process.kill(-child.pid, 'SIGTERM'); } catch { /* group gone */ }
+          killTimer = setTimeout(() => { try { process.kill(-child.pid, 'SIGKILL'); } catch { /* gone */ } }, 2000);
+          if (killTimer.unref) killTimer.unref();
+        }, { once: true });
       });
       if (r.error?.code === 'ENOENT') break; // 下一个解释器
+      // 纠偏：abort 触发的终止不得走梯子重试（防止 abort 后重复启动脚本）
+      if (signal?.aborted) {
+        return out0(r);
+      }
       if (r.killed && r.status !== 0 && timeoutMs < TIMEOUT_LADDER[2]) continue; // 梯子升级
       const out = r.out || '';
       if (r.status === 0) return out || '(脚本执行完成，无输出)';
@@ -858,6 +877,11 @@ async function runScript(bin, script, root, cwd, signal) {
     }
   }
   return `${bin}: 未找到可用解释器（可用 CLAWSGO_${bin === 'node' ? 'NODE' : 'PYTHON'}_BIN 指定路径）`;
+}
+// abort 终止时的统一出口（不走梯子）
+function out0(r) {
+  const out = r.out || '';
+  return out ? `[cancelled]\n${out}` : '(已取消)';
 }
 
 

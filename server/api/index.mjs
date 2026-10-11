@@ -230,6 +230,25 @@ function watchConversation(conversationId, client) {
     fs.mkdirSync(dir, { recursive: true });
     const state = { watcher: null, clients: new Set(), timer: null, pending: new Set() };
     try {
+      // P0 修复：fs.watch 在 macOS /tmp 上偶发不触发（FSEvents 延迟）——加 polling 兜底
+      // 两套机制：fs.watch 事件 + 500ms readdir 快照 diff，任一触发即推送 change 帧
+      let lastSnapshot = '';
+      const takeSnapshot = () => {
+        try {
+          const files = [];
+          const walk = (d, prefix) => {
+            for (const f of fs.readdirSync(d, { withFileTypes: true })) {
+              if (f.name === '.seeded' || f.name === '.git') continue;
+              const rel = prefix ? `${prefix}/${f.name}` : f.name;
+              if (f.isDirectory()) walk(path.join(d, f.name), rel);
+              else files.push(rel + ':' + fs.statSync(path.join(d, f.name)).mtimeMs);
+            }
+          };
+          walk(dir, '');
+          return files.sort().join('|');
+        } catch { return lastSnapshot; }
+      };
+      lastSnapshot = takeSnapshot();
       state.watcher = fs.watch(dir, { recursive: true }, (eventType, filename) => {
         const rel = String(filename ?? '').replace(/\\/g, '/');
         if (!rel || rel === '.seeded' || rel.startsWith('.git/')) return;
@@ -240,6 +259,7 @@ function watchConversation(conversationId, client) {
           const events = [...state.pending].map((p) => ({ path: p }));
           state.pending.clear();
           if (!events.length) return;
+          lastSnapshot = takeSnapshot();
           const frame = `data: ${JSON.stringify({ type: 'change', events, truncated: false })}\n\n`;
           for (const c of state.clients) {
             try {
@@ -251,6 +271,18 @@ function watchConversation(conversationId, client) {
         }, 120);
         if (state.timer.unref) state.timer.unref();
       });
+      // polling 兜底：500ms 一次 readdir+mtime diff
+      state.pollTimer = setInterval(() => {
+        const snap = takeSnapshot();
+        if (snap !== lastSnapshot) {
+          lastSnapshot = snap;
+          const frame = `data: ${JSON.stringify({ type: 'change', events: [{ path: '(poll)' }], truncated: false })}\n\n`;
+          for (const c of state.clients) {
+            try { c.res.write(frame); } catch { state.clients.delete(c); }
+          }
+        }
+      }, 500);
+      if (state.pollTimer.unref) state.pollTimer.unref();
     } catch (e) {
       console.warn('[fileWatch] 无法监听', conversationId, e.message);
     }
@@ -265,6 +297,7 @@ function watchConversation(conversationId, client) {
         entry.watcher?.close();
       } catch { /* ignore */ }
       if (entry.timer) clearTimeout(entry.timer);
+      if (entry.pollTimer) clearInterval(entry.pollTimer);
       watchers.delete(conversationId);
     }
   };

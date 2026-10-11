@@ -1,10 +1,11 @@
 {
   "staging": ".live/app",
-  "added": 0,
-  "updated": 0,
-  "removed": 0,
-  "total_assets": 1098,
+  "added": 190,
+  "updated": 2,
+  "removed": 193,
+  "total_assets": 1288,
   "rewritten_files": [
+    "api-DCTmFum4.js",
     "api-DYG_whnY.js",
     "region-B-TY-5rL.js"
   ],

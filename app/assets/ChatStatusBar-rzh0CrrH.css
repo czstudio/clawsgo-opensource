@@ -1,1 +1,0 @@
-.composer-editor p.is-editor-empty:first-child:before{content:attr(data-placeholder);float:left;pointer-events:none;height:0;color:var(--color-muted-foreground);opacity:.5}.composer-editor .ProseMirror-selectednode{background:var(--color-highlight);outline:2px solid var(--color-ring);outline-offset:0;border-radius:var(--radius-sm)}

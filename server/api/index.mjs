@@ -633,11 +633,16 @@ export function handleTerminalUpgrade(req, socket, head, deps) {
             prompt();
             continue;
           }
-          const res = toolBash(conversationId, { command: line });
-          const out = (res.output ?? '').replace(/\n/g, '\r\n');
-          if (out) ws.send(out.endsWith('\r\n') ? out : out + '\r\n');
-          if (res.error) ws.send(`\x1b[31m${res.error.replace(/\n/g, '\r\n')}\x1b[0m\r\n`);
-          prompt();
+          // toolBash 已 async 化（执行单 04 修复）——终端路径同步适配
+          Promise.resolve(toolBash(conversationId, { command: line }, null)).then((res) => {
+            const out = (res.output ?? '').replace(/\n/g, '\r\n');
+            if (out) ws.send(out.endsWith('\r\n') ? out : out + '\r\n');
+            if (res.error) ws.send(`\x1b[31m${res.error.replace(/\n/g, '\r\n')}\x1b[0m\r\n`);
+            prompt();
+          }).catch((e) => {
+            ws.send(`\x1b[31m${String(e.message ?? e).replace(/\n/g, '\r\n')}\x1b[0m\r\n`);
+            prompt();
+          });
         } else if (ch === '\x7f' || ch === '\b') {
           if (buffer.length) {
             buffer = buffer.slice(0, -1);

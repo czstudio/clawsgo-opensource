@@ -787,14 +787,32 @@ async function compileTypst(p, ctx) {
 }
 
 async function compileLatex(p, ctx) {
+  // P0-1（GAP-LIST v2）：接真引擎 tectonic（grok 硬验收：pdf 非空 + %PDF 开头 + pdffonts 退出码 0）
   const source = String(p?.source ?? '');
+  const conv = ownConversation(req(p, 'conversationId'), ctx);
+  const ws = ensureWorkspace(conv.id);
+  const texRel = 'latex/latest.tex';
+  const texAbs = safeJoin(ws, texRel);
+  fs.mkdirSync(path.dirname(texAbs), { recursive: true });
+  fs.writeFileSync(texAbs, source);
+  const pdfRel = texRel.replace('.tex', '.pdf');
+  const pdfAbs = safeJoin(ws, pdfRel);
+  const { execFile } = await import('node:child_process');
+  const r = await new Promise((resolve) => {
+    execFile('tectonic', ['-o', path.dirname(pdfAbs), texAbs], { timeout: 120_000, maxBuffer: 4e6 }, (err, so, se) => {
+      resolve({ err, so: so?.slice(-1000) ?? '', se: se?.slice(-1000) ?? '' });
+    });
+  });
+  if (!r.err && fs.existsSync(pdfAbs)) {
+    return { ok: true, engine: 'tectonic', log: r.se || 'compiled', pdf: pdfRel, errors: [], warnings: [] };
+  }
   return {
-    ok: true,
-    log: 'local-reproduction: LaTeX 引擎未内置，已跳过编译。',
-    engine: 'none',
+    ok: false,
+    log: r.se || r.so || String(r.err?.message ?? 'tectonic failed'),
+    engine: 'tectonic',
     html: `<pre>${source.replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]))}</pre>`,
     pdf: null,
-    errors: [],
+    errors: [r.err?.message ?? r.se?.slice(0, 200) ?? 'unknown'],
     warnings: [],
   };
 }

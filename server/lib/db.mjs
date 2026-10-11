@@ -2,6 +2,7 @@
 // 全部数据落在 server/data/db.json，首次启动自动播种演示数据。
 import fs from 'node:fs';
 import path from 'node:path';
+import nodeCrypto from 'node:crypto';
 
 export const SERVER_DIR = path.resolve(import.meta.dirname, '..');
 export const DATA_DIR = path.join(SERVER_DIR, 'data');
@@ -132,18 +133,19 @@ export function reset() {
 const ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789';
 
 export function rid(len = 12) {
+  // ARTEX medium 2026-10-10：Math.random 可预测 → crypto 安全随机
+  const bytes = nodeCrypto.randomBytes(len);
   let s = '';
-  for (let i = 0; i < len; i++) s += ALPHABET[Math.floor(Math.random() * ALPHABET.length)];
+  for (let i = 0; i < len; i++) s += ALPHABET[bytes[i] % ALPHABET.length];
   return s;
 }
 
 /** 与生产一致的 UUID v4 风格 id */
 export function uuid() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
+  const b = nodeCrypto.randomBytes(16);
+  b[6] = (b[6] & 0x0f) | 0x40; b[8] = (b[8] & 0x3f) | 0x80;
+  const h = [...b].map((x) => x.toString(16).padStart(2, '0')).join('');
+  return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`;
 }
 
 export function now() {

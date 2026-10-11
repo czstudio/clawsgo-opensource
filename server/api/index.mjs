@@ -179,9 +179,9 @@ function resolveTeamId(user, payload) {
     const t = db.teams.find((x) => x.id === wanted);
     const mem = db.teamMembers.find((m) => m.teamId === wanted && m.userId === user.id);
     if (t && (mem || user.role === 'super_admin')) return t.id;
-    // 前端可能传 userId 当 teamId（个人团队 id === userId）
-    const byId = db.teams.find((x) => x.id === wanted);
-    if (byId) return byId.id;
+    // 前端可能传 userId 当 teamId（个人团队 id === userId）——仅当该 id 属于请求者本人才放行
+    // （ARTEX Critical 2026-10-10：原 fallback 无 membership 校验，任意存在 teamId 可劫持 ctx.teamId）
+    if (t && t.id === user.id) return t.id;
   }
   return personalTeamFor(user.id)?.id ?? null;
 }

@@ -38,6 +38,8 @@ function fail(res, code, message, status = 400, extra = {}) {
 const TOKEN_TTL = 30 * 864e5;
 
 export function issueToken(userId) {
+  // ARTEX medium 2026-10-10：重登录应失效旧会话（单用户多活 token → 仅保留最新）
+  for (const [k, v] of tokens) if (v.userId === userId) tokens.delete(k);
   const token = 'cgt_' + rid(40);
   tokens.set(token, { userId, createdAt: now(), expiresAt: Date.now() + TOKEN_TTL });
   try {

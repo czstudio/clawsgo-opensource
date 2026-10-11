@@ -159,9 +159,12 @@ export async function startAgentRun({ conversation, userMessage, assistantMessag
     hub.runContext(run, 2400 + Math.round(historyChars / 2.2));
   } catch { /* 忽略 */ }
   const s = newRunState();
+  const ac = new AbortController();
   run.abort = () => {
     s.aborted = true;
+    ac.abort(); // 真中止：杀 LLM fetch + Bash 子进程
   };
+  run.signal = ac.signal;
 
   const ctx = {
     conversation,
@@ -300,7 +303,7 @@ async function demoAgent(ctx) {
         toolUseId: 'call_' + uuid().slice(0, 8),
         toolName: 'Bash',
         input: { command: cmd, description: '执行实验编排脚本' },
-        run: async () => toolBash(conversation.id, { command: cmd }).output,
+        run: async () => (await toolBash(conversation.id, { command: cmd }, run.signal)).output,
       });
       // 真实落一个产出文件
       const outName = 'data/processed/exposure_plan.csv';
@@ -737,7 +740,7 @@ async function executeTool(conversationId, name, input) {
       return hits.map((h) => `${h.path}:${h.line}: ${h.text}`).join('\n') || '(无命中)';
     }
     case 'Bash':
-      return toolBash(conversationId, input).output;
+      return (await toolBash(conversationId, input, run.signal)).output;
     case 'WebSearch':
       return JSON.stringify(await toolWebSearch({ query: input.query }), null, 2);
     case 'WebFetch':

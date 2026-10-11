@@ -2,7 +2,7 @@
 // 这样 Read/Write/Edit/Glob/Grep 等工具是**真的在执行**，文件面板展示的也是真实文件。
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { DATA_DIR, db$, now } from './db.mjs';
 
 export const WORKSPACE_ROOT = path.join(DATA_DIR, 'workspace');
@@ -438,7 +438,7 @@ const flagNum = (args, name, dflt) => {
  * 真实执行一条（可能带管道的）命令。
  * @returns {{blocked:boolean, output:string, cwd:string, description?:string, error?:string}}
  */
-export function toolBash(conversationId, { command, description, cwd: cwdIn } = {}) {
+export async function toolBash(conversationId, { command, description, cwd: cwdIn } = {}, signal = null) {
   const root = ensureWorkspace(conversationId);
   const cmd = String(command ?? '').trim();
   if (!cmd) return { blocked: false, output: '', cwd: cwdIn ?? '', description };
@@ -466,7 +466,7 @@ export function toolBash(conversationId, { command, description, cwd: cwdIn } = 
     for (const seg of segs) {
       const tokens = tokenize(seg);
       const [bin, ...args] = tokens;
-      const r = runOne(bin, args, { root, cwd, data, conversationId });
+      const r = await runOne(bin, args, { root, cwd, data, conversationId, signal });
       data = r.data;
       if (r.cwd !== undefined) cwd = r.cwd;
       if (r.log) log.push(r.log);
@@ -486,7 +486,7 @@ export function toolBash(conversationId, { command, description, cwd: cwdIn } = 
 
 const ABS = (root, cwd, p) => safeJoin(root, path.posix.join(cwd, String(p ?? '')));
 
-function runOne(bin, args, { root, cwd, data, conversationId }) {
+async function runOne(bin, args, { root, cwd, data, conversationId, signal }) {
   const flags = flagsOf(args);
   const ops = operandsOf(args);
 
@@ -779,7 +779,7 @@ function runOne(bin, args, { root, cwd, data, conversationId }) {
     case 'python':
     case 'python3':
     case 'node':
-      return { data: runScript(bin, ops[0], root, cwd) };
+      return { data: await runScript(bin, ops[0], root, cwd, signal) };
 
     case 'git': {
       const sub = ops[0] ?? 'status';
@@ -807,17 +807,16 @@ function readMaybe(root, cwd, f) {
 }
 
 /** 真实执行工作区内的脚本（10s 超时，路径必须落在工作区内） */
-function runScript(bin, script, root, cwd) {
+async function runScript(bin, script, root, cwd, signal) {
   if (!script) return `${bin} 交互模式在本复刻终端中不可用，请指定脚本文件。`;
   const ext = path.extname(script).toLowerCase();
-  const allowed = bin === 'node' ? ['.js', '.mjs', '.cjs'] : ['.py', ''];
-  if (ext && !allowed.includes(ext)) {
-    return `${bin}: 只允许执行 ${allowed.join('/')} 文件`;
+  if (ext !== '.py' && ext !== '.js' && ext !== '.mjs') {
+    return `${bin}: 仅支持 .py/.js/.mjs 脚本（收到 ${script}）`;
   }
   const abs = ABS(root, cwd, script);
-  if (!fs.existsSync(abs)) return `${bin}: can't open file '${script}': No such file or directory`;
-  // 脚本里的相对路径（如 --out data/processed/x.csv）应该相对「shell 当前目录」解析，
-  // 而不是相对脚本文件所在目录，否则会写出 scripts/data/processed/... 这种错位路径。
+  if (!abs) throw new Error(`路径越界: ${script}`);
+  if (!fs.existsSync(abs)) throw new Error(`${bin}: ${script}: No such file`);
+  // 复用脚本所在目录做 cwd（相对 import/data 路径从脚本视角解析）
   const runCwd = ABS(root, cwd, '.');
 
   const candidates =
@@ -825,27 +824,37 @@ function runScript(bin, script, root, cwd) {
       ? [process.env.CLAWSGO_NODE_BIN, process.execPath].filter(Boolean)
       : [
           process.env.CLAWSGO_PYTHON_BIN,
-          'C:/Users/40825/.workbuddy/binaries/python/versions/3.13.12/python.exe',
-          'C:/Python314/python.exe',
           'python3',
           'python',
         ].filter(Boolean);
 
+  // 线上递增超时梯子（2026-10-10 fork 案例实测）：300s → 480s → 600s 封顶
+  const TIMEOUT_LADDER = [300_000, 480_000, 600_000];
   for (const exe of candidates) {
-    try {
-      const r = spawnSync(exe, [abs], {
-        cwd: fs.existsSync(runCwd) ? runCwd : path.dirname(abs),
-        timeout: 10_000,
-        encoding: 'utf8',
-        maxBuffer: 4 * 1024 * 1024,
-        windowsHide: true,
+    for (const timeoutMs of TIMEOUT_LADDER) {
+      const r = await new Promise((resolve) => {
+        const child = spawn(exe, [abs], {
+          cwd: fs.existsSync(runCwd) ? runCwd : path.dirname(abs),
+          stdio: ['ignore', 'pipe', 'pipe'],
+          windowsHide: true,
+        });
+        let out = '', killed = false;
+        const timer = setTimeout(() => { killed = true; child.kill('SIGTERM'); }, timeoutMs);
+        child.stdout.on('data', (d) => { out += d; if (out.length > 4e6) child.kill('SIGTERM'); });
+        child.stderr.on('data', (d) => { out += d; });
+        child.on('error', (e) => { clearTimeout(timer); resolve({ error: e }); });
+        child.on('close', (code) => {
+          clearTimeout(timer);
+          resolve({ status: code, out: out.trim(), killed });
+        });
+        // cancel 路由 abort → SIGTERM（Bash 释放不留孤儿）
+        if (signal) signal.addEventListener('abort', () => { child.kill('SIGTERM'); }, { once: true });
       });
-      if (r.error?.code === 'ENOENT') continue;
-      const out = [r.stdout, r.stderr].filter(Boolean).join('\n').trim();
+      if (r.error?.code === 'ENOENT') break; // 下一个解释器
+      if (r.killed && r.status !== 0 && timeoutMs < TIMEOUT_LADDER[2]) continue; // 梯子升级
+      const out = r.out || '';
       if (r.status === 0) return out || '(脚本执行完成，无输出)';
       return `[exit ${r.status}]\n${out}`;
-    } catch {
-      continue;
     }
   }
   return `${bin}: 未找到可用解释器（可用 CLAWSGO_${bin === 'node' ? 'NODE' : 'PYTHON'}_BIN 指定路径）`;

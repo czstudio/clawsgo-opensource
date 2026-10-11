@@ -739,8 +739,12 @@ async function executeTool(conversationId, name, input) {
       const hits = toolGrep(conversationId, { pattern: input.pattern, path: input.path ?? '' });
       return hits.map((h) => `${h.path}:${h.line}: ${h.text}`).join('\n') || '(无命中)';
     }
-    case 'Bash':
-      return (await toolBash(conversationId, input, run.signal)).output;
+    case 'Bash': {
+      // 独立验收 04 发现：run 不在 executeTool 词法作用域（ReferenceError）。
+      // 从 hub 取本会话当前 run 的 signal；无活动 run 时 signal 为 undefined（安全默认）。
+      const activeRun = hub.run(conversationId);
+      return (await toolBash(conversationId, input, activeRun?.signal)).output;
+    }
     case 'WebSearch':
       return JSON.stringify(await toolWebSearch({ query: input.query }), null, 2);
     case 'WebFetch':

@@ -18,7 +18,7 @@ import { personalTeamFor } from '../lib/shapes.mjs';
 import { hub } from '../lib/sse.mjs';
 import { workspaceDir, safeJoin } from '../lib/workspace.mjs';
 import { ApiError } from '../lib/errors.mjs';
-import { handleAuth, userFromRequest, issueToken, tokens } from './auth.mjs';
+import { handleAuth, userFromRequest, userFromAuthHeader, issueToken, tokens } from './auth.mjs';
 import { parseMultipart, textFields } from '../lib/multipart.mjs';
 
 import { commands as chatCommands } from './chat.mjs';
@@ -635,8 +635,15 @@ export function handleTerminalUpgrade(req, socket, head, deps) {
 
   const url = new URL(req.url, 'http://localhost');
   const ticket = url.searchParams.get('ticket');
-  const rec = terminalTickets.get(ticket);
-  if (!rec || rec.expiresAt < Date.now()) {
+  const rec = ticket ? terminalTickets.get(ticket) : null;
+  // CWE-639 修复：票据签发给特定用户（rec.userId），兑换必须以同一身份出现。
+  // 浏览器 WebSocket 无法带自定义头，因此兼容 query `?ticket=..&token=<set-auth-token 值>`；
+  // 服务端校验 token 归属 === 签发者。无 token = fail-closed（拒绝）——宁可前端
+  // 未适配，也不留跨用户终端接入面。待办：前端 HostTerminal 连接时补 token 参数。
+  const bearerToken = url.searchParams.get('token');
+  const redeemUser = userFromAuthHeader(bearerToken ? `Bearer ${bearerToken}` : req.headers.authorization);
+  if (!rec || !redeemUser || redeemUser.id !== rec.userId || rec.expiresAt < Date.now()) {
+    if (rec) terminalTickets.delete(ticket);
     const ws0 = wrapSocket(socket, { onMessage: () => {} });
     ws0.send('\r\n\x1b[31m终端票据无效或已过期\x1b[0m\r\n');
     ws0.close(1008, 'invalid ticket');

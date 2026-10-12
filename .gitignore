@@ -39,3 +39,4 @@ desktop.ini
 # reverse-skill 案卷（本地分析工件，不入仓）
 work/
 .live/
+strix_runs/
